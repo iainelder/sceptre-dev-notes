@@ -140,3 +140,45 @@ sudo apt install python3.10
 Now restore the `language_version` line in the hook and try again.
 
 The hook works as expected.
+
+## Read the contributing guide
+
+The [contributing guide](https://github.com/Sceptre/sceptre/blob/master/CONTRIBUTING.md) shows pre-commit and tox and various other tasks I should take care of as a developer.
+
+## Run unit tests with tox
+
+```bash
+poetry run tox
+```
+
+To pass all the unit tests I need to install all the supported Python versions. Python 3.10 was alreay installed for black.
+
+```bash
+sudo apt install python3.7 python3.9 python3.11
+```
+
+Tox still fails on Python 3.7 because of a missing depdency.
+
+```bash
+poetry run tox -e py37
+```
+
+```console
+ModuleNotFoundError: No module named 'distutils.cmd'
+```
+
+[Ask Ubuntu](https://askubuntu.com/a/1296996/143624) gives a solution to this exact problem. Install the missing distutils package from deadsnakes.
+
+```bash
+sudo apt install python3.7-distutils
+```
+
+Now the tests pass on Python 3.7.
+
+```text
+  py37: commands succeeded
+```
+
+## Ask question about version difference between black and tox
+
+See [GitHub issue 1370](https://github.com/Sceptre/sceptre/issues/1370).
