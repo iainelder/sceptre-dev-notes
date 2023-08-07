@@ -1,6 +1,6 @@
 # cmd hook options
 
-I volunteered to provide a solution for issue 1213.
+I volunteered to provide a solution for [issue 1213](https://github.com/Sceptre/sceptre/issues/1213).
 
 See [Slack thread](https://og-aws.slack.com/archives/C01JNN8RGBB/p1689931787395429) for advice from Jon Falkenstein.
 
@@ -182,3 +182,51 @@ Now the tests pass on Python 3.7.
 ## Ask question about version difference between black and tox
 
 See [GitHub issue 1370](https://github.com/Sceptre/sceptre/issues/1370).
+
+## Read code for cmd hook
+
+The cmd hook appears to be implemented at `sceptre/hooks/cmd.py`. It's short.
+
+The `Cmd` class is basically a wrapper for [`subprocess.check_call`](https://docs.python.org/3/library/subprocess.html#subprocess.check_call).
+
+> Run command with arguments. Wait for command to complete. If the return code was zero then return, otherwise raise CalledProcessError.
+
+The `run` method take no arguments, so the command string must be handled in the initializer.
+
+`__init__` just delegates to the superclass `Hook`.
+
+`Hook` has no `__init__` method.
+
+`Hook`'s superclass is `CustomYamlTagBase`.
+
+`CustomYamlTagBase`'s docstring starts "A base class for custom Yaml Elements (i.e. hooks and resolvers).".
+
+`CustomYamlTagBase`'s `__init__` method takes two keyword arguments `argument` and `stack`. It assigns `argument` to `self._argument` and assigns `stack` to `self.stack`. The class defines an `argument` property that either just returns `self._argument` or calls `self._resolve_argument`.
+
+`Cmd`'s `run` method passes `self.argument` to `check_call`.
+
+`Cmd.run` also passes environment variables to `check_call` after retrieving them from `self.stack.connection_manager.create_session_environment_variables()`.
+
+The `asg_scaling_processes` hook also takes a string argument.
+
+Review Jon Falkenstein's notes in the issue about a possible solution. Now it makes more sense!
+
+> the `cmd` hook simply executes `subprocess.check_call(self.argument, shell=True)`
+>
+> I can imagine a way for that hook to evaluate `self.argument` and decide:
+>
+> * If `self.argument` is a `str`, it would execute the command just like it does now
+>
+> * If `self.argument` is a dict, it would let you specify subprocess kwargs, like:
+>   ```yaml
+>       before_update:
+>           - !cmd
+>               args: "echo I'm using bash!"
+>               executable: "/bin/bash"
+>   ```
+
+Next steps:
+
+* Write a hook with dict args to see how it behaves (should fail)
+* Attempt to modify the hook to handle `args` and `executable` arguments
+* Put up a draft PR for discussion with Sceptre dev team
