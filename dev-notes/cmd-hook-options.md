@@ -230,3 +230,106 @@ Next steps:
 * Write a hook with dict args to see how it behaves (should fail)
 * Attempt to modify the hook to handle `args` and `executable` arguments
 * Put up a draft PR for discussion with Sceptre dev team
+
+## Write a hook with dict args
+
+There is already a lot of test material in the tests folder. I'll ignore it for now and set up just what I need for a proof of concept.
+
+I will trim all the deprecation warnings and full stace traces from the outputs except when relevant.
+
+Add args to the hook.
+
+```bash
+put "$tmp/config/test.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+    before_update:
+        - !cmd
+            args: 'echo "Hello, world!"'
+            executable: "/bin/bash"
+EOF
+```
+
+See how Sceptre behaves. Number the output lines for easier referencing.
+
+```bash
+(cd "$tmp"; sceptre launch --yes .) 2>&1 | cat -n
+```
+
+```text
+     2	  from pkg_resources import iter_entry_points
+     3	[2023-08-17 19:33:50] - test - Launching Stack
+     4	[2023-08-17 19:33:50] - test - Stack is in the CREATE_COMPLETE state
+     5	executable: 1: args: not found
+     6	Traceback (most recent call last):
+    57	subprocess.CalledProcessError: Command '{'args': 'echo "Hello, world!"', 'executable': '/bin/bash'}' returned non-zero exit status 127.
+```
+
+Line 5 is the shell output from the hook command.
+
+Line 57 is the Python error that halts Sceptre.
+
+It's unclear exactly what is being sent to the shell for execution.
+
+The shell is `/bin/sh`, which on my system is `/bin/dash`.
+
+Line 57 suggests it is a line like this (input escaped for `bash` before passing to `dash`):
+
+```console
+$ /bin/sh -c "{'args': 'echo \"Hello, world\!\"', 'executable': '/bin/bash'}"
+/bin/sh: 1: {args:: not found
+```
+
+The output has the `1: ` and the `: not found` parts. That looks like a line number and an error message from dash. But the other parts, my input, the interpreter name and the command, are different.
+
+This invocation gives the same error message on line 5.
+
+```console
+$ /bin/sh -c 'args' executable
+executable: 1: args: not found
+```
+
+Check the Cmd hook code.
+
+The object is just passed to `check_call`, so Sceptre does whatever it does.
+
+```python
+subprocess.check_call(self.argument, shell=True, env=envs)
+```
+
+Execute the same in a Python shell.
+
+```python
+import subprocess
+subprocess.check_call({'args': 'echo \"Hello, world\!\"', 'executable': '/bin/bash'}, shell=True)
+```
+
+I get the same output from dash and the same Python exception.
+
+(Also I get a strange error from requests. What's it doing here!?)
+
+```text
+executable: 1: args: not found
+/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (1.26.16) or chardet (3.0.4) doesn't match a supported version!
+  warnings.warn("urllib3 ({}) or chardet ({}) doesn't match a supported "
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/python3.8/subprocess.py", line 364, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '{'args': 'echo "Hello, world\\!"', 'executable': '/bin/bash'}' returned non-zero exit status 127.
+```
+
+If I pass a simple string I get the output from the command and then the return value of the `check_call` function, which is the exit code of dash.
+
+```python
+subprocess.check_call('echo "Hello, world!"', shell=True)
+```
+
+```text
+Hello, world!
+0
+```
+
+Next step: rewrite the Cmd hook to handle both of these types of input.
