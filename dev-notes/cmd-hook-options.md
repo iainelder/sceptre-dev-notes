@@ -259,7 +259,6 @@ See how Sceptre behaves. Number the output lines for easier referencing.
 ```
 
 ```text
-     2	  from pkg_resources import iter_entry_points
      3	[2023-08-17 19:33:50] - test - Launching Stack
      4	[2023-08-17 19:33:50] - test - Stack is in the CREATE_COMPLETE state
      5	executable: 1: args: not found
