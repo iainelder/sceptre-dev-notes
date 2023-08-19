@@ -14,6 +14,10 @@ See [Slack thread](https://og-aws.slack.com/archives/C01JNN8RGBB/p16899317873954
 
 Clone my fork of the Sceptre repo. Install the dependencies with Poetry.
 
+```bash
+poetry install --all-extras -v
+```
+
 Start a Poetry shell.
 
 Create a minimal project to test a hook. This hook just echos a message.
@@ -330,5 +334,25 @@ subprocess.check_call('echo "Hello, world!"', shell=True)
 Hello, world!
 0
 ```
+
+Try to make the same calls using the Cmd hook interface.
+
+It depends on Stack, which depends on a stack config (not sure about the type here but `dict` seems to work) and on valid session credentials (discover that by running without a default profile and get `sceptre.exceptions.InvalidAWSCredentialsError: Session credentials were not found. Profile: None. Region: region1.` or by running with an expired session and getting `botocore.exceptions.UnauthorizedSSOTokenError: The SSO session associated with this profile has expired or is otherwise invalid. To refresh this SSO session run aws sso login with the corresponding profile.`).
+
+Minimal setup to run the hook in Python.
+
+```python
+from sceptre.hooks.cmd import Cmd
+from sceptre.stack import Stack
+stack = Stack("stack1", "project1", "region1", template_handler_config={"template": "path.yaml"})
+cmd = Cmd("echo 'Hello, world!'", stack)
+cmd.run()
+```
+
+```text
+Hello, world!
+```
+
+TODO: Pass dict params to the hook in Python.
 
 Next step: rewrite the Cmd hook to handle both of these types of input.
