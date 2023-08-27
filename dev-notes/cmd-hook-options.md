@@ -22,6 +22,8 @@ Start a Poetry shell.
 
 Create a minimal project to test a hook. This hook just echos a message.
 
+(Note: there's a bug in `put`. I wanted to read until the null byte, but as written it reads until the first `0` character. To read until the first null byte, I think I need to use `read -d ''`. I read that it's not [explicitly documented](https://unix.stackexchange.com/questions/174016/how-do-i-use-null-bytes-in-bash), but as it takes the first character of the delimiter then it becomes the null byte.)
+
 ```bash
 put() {
     local path="$1"
@@ -353,6 +355,259 @@ cmd.run()
 Hello, world!
 ```
 
-TODO: Pass dict params to the hook in Python.
+---
 
-Next step: rewrite the Cmd hook to handle both of these types of input.
+Try to use a shell other than `/bin/sh` via `check_call`.
+
+`check_call` delegates to [`Popen`](https://docs.python.org/3/library/subprocess.html#subprocess.Popen).
+
+> On POSIX with `shell=True`, the shell defaults to `/bin/sh.`
+
+>  If `shell=True`, on POSIX the _executable_ argument specifies a replacement shell for the default `/bin/sh`.
+
+`check_call`'s signature includes `**other_popen_kwargs`. It supports the `executable` argument directly.
+
+```python
+subprocess.check_call('echo "Hello, world!"', shell=True, executable='/bin/bash')
+```
+
+```text
+Hello, world!
+0
+```
+
+In this way I can use the `[[` syntax that prompted the GitHub issue.
+
+```python
+subprocess.check_call('if [[ 1 > 0 ]]; then echo "Hello"; fi', shell=True, executable='/bin/bash')
+```
+
+```text
+Hello
+0
+```
+
+Without setting executable, I get the same error from `/bin/sh`. The return code is still 0, though.
+
+```python
+subprocess.check_call('if [[ 1 > 0 ]]; then echo "Hello"; fi', shell=True)
+```
+
+```text
+/bin/sh: 1: [[: not found
+0
+```
+
+What if I want to set arguments to the shell executable? This doesn't work.
+
+```python
+subprocess.check_call('if [[ 1 > 0 ]]; then echo "Hello"; fi', shell=True, executable="/bin/sh -e")
+```
+
+```text
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/python3.8/subprocess.py", line 359, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "/usr/lib/python3.8/subprocess.py", line 340, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/usr/lib/python3.8/subprocess.py", line 858, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/usr/lib/python3.8/subprocess.py", line 1704, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/bin/sh -e'
+```
+
+In this case it looks like the easier thing to do is just ignore shell mode and build the command string directly. Se this [Stack Overflow](https://stackoverflow.com/a/15782232/111424) answer for inspiration.
+
+```python
+shell = "bash -e"
+cmd = 'echo "Hello, world!"'
+args = shlex.split(shell) + ["-c", cmd]
+subprocess.check_call(args)
+```
+
+I'm not sure whether it's okay to hard-code the `"-c"` part. It's part of `sh''s [Posix standard](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html), so maybe it is.
+
+---
+
+Now I'm ready to implement the new version.
+
+Rewrite the Cmd hook to handle the dict parameters. The call becomes:
+
+```python
+subprocess.check_call(
+    self.argument["args"],
+    shell=True,
+    env=envs,
+    executable=self.argument["executable"]
+)
+```
+
+When I run sceptre with the new parameters in the hook YAML, it works.
+
+```text
+     3	[2023-08-27 17:46:07] - test - Launching Stack
+     4	[2023-08-27 17:46:09] - test - Stack is in the CREATE_COMPLETE state
+     5	Hello, world!
+     6	[2023-08-27 17:46:09] - test - Updating Stack
+     7	[2023-08-27 17:46:09] - test - No updates to perform.
+```
+
+Add another stack config that uses the original syntax.
+
+```bash
+put "$tmp/config/test2.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+    before_update:
+        - !cmd 'echo "Hello, world!"'
+EOF
+```
+
+The two configs are now side-by-side.
+
+```bash
+tree "$tmp"
+```
+
+```text
+/tmp/tmp.XXT21f8f4F
+├── config
+│   ├── config.yaml
+│   ├── test2.yaml
+│   └── test.yaml
+└── templates
+    └── test.yaml
+```
+
+test2 does create on the first launch because the hook triggers only before update.
+
+On the second launch, I get an error:
+
+```text
+     3	[2023-08-27 18:14:16] - test - Launching Stack
+     4	[2023-08-27 18:14:16] - test2 - Launching Stack
+     5	[2023-08-27 18:14:17] - test - Stack is in the CREATE_COMPLETE state
+     6	Hello, world!
+     7	[2023-08-27 18:14:17] - test2 - Stack is in the CREATE_COMPLETE state
+     8	[2023-08-27 18:14:17] - test - Updating Stack
+     9	[2023-08-27 18:14:17] - test - No updates to perform.
+    10	"The argument \"echo \"Hello, world!\"\" is the wrong type - cmd hooks require arguments of type string."
+```
+
+I expected it to fail, but the error message doesn't make much sense.
+
+InvalidHookArgumentTypeError is a SceptreException. Sceptre appears to just print the message instead of the whole stack trace for this exception type.
+
+Definition in `sceptre/exceptions.py`:
+
+```python
+class InvalidHookArgumentTypeError(SceptreException):
+    """
+    Error raised if a hook's argument type is invalid.
+    """
+
+    pass
+```
+
+If I comment out the original code and just raise the TypeError, what happens?
+
+```python
+try:
+    ...
+except TypeError:
+    # raise InvalidHookArgumentTypeError(
+    #     'The argument "{0}" is the wrong type - cmd hooks require '
+    #     "arguments of type string.".format(self.argument)
+    # )
+    raise
+```
+
+I get a traceback:
+
+```text
+    10	Traceback (most recent call last):
+    ...
+    59	TypeError: string indices must be integers
+```
+
+The special handling for SceptreException is in `cli/helpers.py`. The `catch_exceptions` function returns its input function wrapped in an error handler. It catches `SceptreException`, `BotoCoreError`, `ClientError`, `Boto3Error`, and `TemplateError`. It calls `write` on the error (I suppose this is what prints out the exception message) and then calls `sys.exit(1)`. So all of these errors are fatal errors in the Sceptre CLI. I don't know how the other types are defined. I can look them up later.
+
+If I add this part before the try-catch:
+
+```python
+if isinstance(self.argument, str):
+     args = self.argument
+     executable = None
+elif isinstance(self.argument, dict):
+     args = self.argument["args"]
+     executable = self.argument["executable"]
+```
+
+And use this subprocess call:
+
+```python
+subprocess.check_call(args, shell=True, env=envs, executable=executable)
+```
+
+Then the hook handles both input types.
+
+```text
+     3	[2023-08-27 18:43:03] - test - Launching Stack
+     4	[2023-08-27 18:43:03] - test2 - Launching Stack
+     5	[2023-08-27 18:43:03] - test - Stack is in the CREATE_COMPLETE state
+     6	Hello, world!
+     7	[2023-08-27 18:43:03] - test - Updating Stack
+     8	[2023-08-27 18:43:03] - test2 - Stack is in the CREATE_COMPLETE state
+     9	Hello, world!
+    10	[2023-08-27 18:43:03] - test2 - Updating Stack
+    11	[2023-08-27 18:43:04] - test2 - No updates to perform.
+    12	[2023-08-27 18:43:04] - test - No updates to perform.
+```
+
+In which circumstances would a type error be raised? Maybe if the `!cmd` directive took an int or a list.
+
+I'll share this proof of concept with the other developers before diving deeper into error handling.
+
+One more test: does it support a hook with Bash syntax?
+
+```bash
+put "$tmp/config/test3.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+    before_update:
+        - !cmd
+            args: 'if [[ true ]]; then echo "Supports Bash syntax."; else "Not Bash? Impossible!"; fi'
+            executable: '/bin/bash'
+EOF
+```
+
+Yes, it supports Bash syntax.
+
+```text
+     2	  from pkg_resources import iter_entry_points
+     3	[2023-08-27 19:41:46] - test - Launching Stack
+     4	[2023-08-27 19:41:46] - test3 - Launching Stack
+     5	[2023-08-27 19:41:46] - test2 - Launching Stack
+     6	[2023-08-27 19:41:47] - test - Stack is in the CREATE_COMPLETE state
+     7	Hello, world!
+     8	[2023-08-27 19:41:47] - test3 - Stack is in the CREATE_COMPLETE state
+     9	[2023-08-27 19:41:47] - test - Updating Stack
+    10	Supports Bash syntax.
+    11	[2023-08-27 19:41:47] - test3 - Updating Stack
+    12	[2023-08-27 19:41:47] - test2 - Stack is in the CREATE_COMPLETE state
+    13	Hello, world!
+    14	[2023-08-27 19:41:47] - test2 - Updating Stack
+    15	[2023-08-27 19:41:47] - test2 - No updates to perform.
+    16	[2023-08-27 19:41:47] - test - No updates to perform.
+    17	[2023-08-27 19:41:47] - test3 - No updates to perform.
+```
+
+---
+
+Now I prepare the draft PR to get feedback from the other developers.
