@@ -608,6 +608,186 @@ Yes, it supports Bash syntax.
     17	[2023-08-27 19:41:47] - test3 - No updates to perform.
 ```
 
----
+## Prepare draft PR
 
 Now I prepare the draft PR to get feedback from the other developers.
+
+Split out the dev notes to a new repo. They are just noise in the PR.
+
+Create a new repo for the dev notes.
+
+```bash
+git clone https://github.com/iainelder/sceptre sceptre-dev-notes
+cd sceptre-dev-notes/
+git filter-repo --path dev-notes
+```
+
+```text
+Parsed 1043 commits
+New history written in 0.12 seconds; now repacking/cleaning...
+Repacking your repo and cleaning out old unneeded objects
+Enumerating objects: 37, done.
+Counting objects: 100% (37/37), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (37/37), done.
+Total 37 (delta 8), reused 18 (delta 8), pack-reused 0
+Completely finished after 0.19 seconds.
+```
+
+```bash
+tree
+```
+
+```text
+.
+└── dev-notes
+    └── cmd-hook-options.md
+
+1 directory, 1 file
+```
+
+```bash
+git branch -M main
+git remote add origin https://github.com/iainelder/sceptre-dev-notes.git
+git push -u origin main
+```
+
+Delete my fork, create a new one, and recreate the changes to the hook.
+
+PR message:
+
+---
+
+My first attempt at adding the executable config to the cmd hook.
+
+The aim is to provide a solution for #1213.
+
+I share this draft as a proof of concept to get feedback on the basic idea.
+
+It will need unit tests and some new error handling and perhaps more changes before it is ready.
+
+---
+
+## Fix the unit tests
+
+If I run tox or pytest I see there are unit test failures.
+
+After running pytest once, use `pytest --lf` to rerun just the failed tests.
+
+```bash
+pytest --lf
+```
+
+```text
+Test session starts (platform: linux, Python 3.8.10, pytest 6.2.5, pytest-sugar 0.9.7)
+rootdir: /home/isme/Repos/sceptre
+plugins: requests-mock-1.11.0, cov-2.12.1, sugar-0.9.7
+collected 637 items / 635 deselected / 2 selected                                    
+run-last-failure: rerun previous 2 failures
+
+
+――――――――――――――――――――――― TestCmd.test_run_with_non_str_argument ―――――――――――――――――――――――
+
+self = <tests.test_hooks.test_cmd.TestCmd object at 0x7f00930dde50>
+
+    def test_run_with_non_str_argument(self):
+        self.cmd.argument = None
+        with pytest.raises(InvalidHookArgumentTypeError):
+>           self.cmd.run()
+
+tests/test_hooks/test_cmd.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = !Cmd
+
+    def run(self):
+        """
+        Runs the argument string in a subprocess.
+    
+        :raises: sceptre.exceptions.InvalidTaskArgumentTypeException
+        :raises: subprocess.CalledProcessError
+        """
+        envs = self.stack.connection_manager.create_session_environment_variables()
+    
+        if isinstance(self.argument, str):
+            args = self.argument
+            executable = None
+        elif isinstance(self.argument, dict):
+            args = self.argument["args"]
+            executable = self.argument["executable"]
+    
+        try:
+>           subprocess.check_call(args, shell=True, env=envs, executable=executable)
+E           UnboundLocalError: local variable 'args' referenced before assignment
+
+sceptre/hooks/cmd.py:31: UnboundLocalError
+
+ tests/test_hooks/test_cmd.py ⨯                                         50% █████     
+
+――――――――――――――――――――――――― TestCmd.test_run_with_str_argument ―――――――――――――――――――――――――
+
+self = <tests.test_hooks.test_cmd.TestCmd object at 0x7f0092f90eb0>
+mock_call = <MagicMock name='check_call' id='139640442540864'>
+
+    @patch("sceptre.hooks.cmd.subprocess.check_call")
+    def test_run_with_str_argument(self, mock_call):
+        self.cmd.argument = "echo hello"
+        self.cmd.run()
+        expected_envs = (
+            self.stack.connection_manager.create_session_environment_variables.return_value
+        )
+>       mock_call.assert_called_once_with("echo hello", shell=True, env=expected_envs)
+
+tests/test_hooks/test_cmd.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib/python3.8/unittest/mock.py:925: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='check_call' id='139640442540864'>, args = ('echo hello',)
+kwargs = {'env': <Mock name='mock.connection_manager.create_session_environment_variables()' id='139640442395184'>, 'shell': True}
+expected = (('echo hello',), {'env': <Mock name='mock.connection_manager.create_session_environment_variables()' id='139640442395184'>, 'shell': True})
+actual = call('echo hello', shell=True, env=<Mock name='mock.connection_manager.create_session_environment_variables()' id='139640442395184'>, executable=None)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x7f009479e940>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\nActual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher((args, kwargs))
+        actual = self._call_matcher(self.call_args)
+        if expected != actual:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: check_call('echo hello', shell=True, env=<Mock name='mock.connection_manager.create_session_environment_variables()' id='139640442395184'>)
+E           Actual: check_call('echo hello', shell=True, env=<Mock name='mock.connection_manager.create_session_environment_variables()' id='139640442395184'>, executable=None)
+
+/usr/lib/python3.8/unittest/mock.py:913: AssertionError
+
+ tests/test_hooks/test_cmd.py ⨯                                        100% ██████████
+============================== short test summary info ===============================
+FAILED tests/test_hooks/test_cmd.py::TestCmd::test_run_with_non_str_argument - Unbo...
+FAILED tests/test_hooks/test_cmd.py::TestCmd::test_run_with_str_argument - Assertio...
+
+Results (1.11s):
+       2 failed
+         - tests/test_hooks/test_cmd.py:18 TestCmd.test_run_with_non_str_argument
+         - tests/test_hooks/test_cmd.py:23 TestCmd.test_run_with_str_argument
+     635 deselected
+```
+
+Fix `test_run_with_non_str_argument` by handling null input.
