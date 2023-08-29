@@ -791,3 +791,19 @@ Results (1.11s):
 ```
 
 Fix `test_run_with_non_str_argument` by handling null input.
+
+# Rewrite the unit tests to test behavior, not implementation
+
+Subprocess testing resources:
+
+* `fake_process` from [pytest-subproces](https://pytest-subprocess.readthedocs.io/en/latest/usage.html )
+* `MockPopen` from [testfixtures](https://testfixtures.readthedocs.io/en/latest/popen.html)
+* `spy` from [pytest-mock](https://pytest-mock.readthedocs.io/en/latest/usage.html)
+* `capfd` from [PyTest documentation](https://docs.pytest.org/en/7.1.x/how-to/capture-stdout-stderr.html)
+* `capfd` useful example from [scivision.dev](https://www.scivision.dev/pytest-stderr-capture/)
+
+I rewrite the tests to test the behavior instead of the implementation.
+
+I removed all the subprocess mocking so that it uses real subprocesses. I use an `echo` command so that it is easy to check the standard output via `capfd`.
+
+The old mocked of stack also mocked the connection manager. Now the real connection manager causes the tests to fail unless I have a valid session to an AWS account. Is that acceptable in the unit tests? If not, find another way around that. Moto? Another way to mock the connection manager?
