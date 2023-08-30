@@ -796,14 +796,21 @@ Fix `test_run_with_non_str_argument` by handling null input.
 
 Subprocess testing resources:
 
-* `fake_process` from [pytest-subproces](https://pytest-subprocess.readthedocs.io/en/latest/usage.html )
+* `fake_process` from [pytest-subprocess](https://pytest-subprocess.readthedocs.io/en/latest/usage.html )
 * `MockPopen` from [testfixtures](https://testfixtures.readthedocs.io/en/latest/popen.html)
 * `spy` from [pytest-mock](https://pytest-mock.readthedocs.io/en/latest/usage.html)
 * `capfd` from [PyTest documentation](https://docs.pytest.org/en/7.1.x/how-to/capture-stdout-stderr.html)
 * `capfd` useful example from [scivision.dev](https://www.scivision.dev/pytest-stderr-capture/)
+* https://pythonhosted.org/MockProc/
+* `ptracer` from [Pintrest](https://ptracer.readthedocs.io/en/latest/) - system call tracing in Python programs
+* https://python-ptrace.readthedocs.io/en/latest/ (see also similar projects) - python-ptrace is a debugger. No longer maintained.
 
 I rewrite the tests to test the behavior instead of the implementation.
 
 I removed all the subprocess mocking so that it uses real subprocesses. I use an `echo` command so that it is easy to check the standard output via `capfd`.
 
 The old mocked of stack also mocked the connection manager. Now the real connection manager causes the tests to fail unless I have a valid session to an AWS account. Is that acceptable in the unit tests? If not, find another way around that. Moto? Another way to mock the connection manager?
+
+https://copyprogramming.com/howto/mocking-subproces-calls-in-python
+
+I don't know how to to test the `executable` parameter of the hook without resorting to mocks. I've posted a [question on Stack Overflow](https://stackoverflow.com/questions/77005909/how-do-i-test-that-a-given-shell-has-been-executed-in-python) for guidance.
