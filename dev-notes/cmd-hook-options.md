@@ -28,7 +28,7 @@ Create a minimal project to test a hook. This hook just echos a message.
 put() {
     local path="$1"
     local input
-    read -d \0 input
+    read -d '' input
 
     mkdir --parents "$(dirname "$path")"
     cat > "$path" <<< "$input"
@@ -253,8 +253,8 @@ template:
 hooks:
     before_update:
         - !cmd
-            args: 'echo "Hello, world!"'
-            executable: "/bin/bash"
+            args: 'echo $0'
+            executable: "bash"
 EOF
 ```
 
@@ -792,7 +792,7 @@ Results (1.11s):
 
 Fix `test_run_with_non_str_argument` by handling null input.
 
-# Rewrite the unit tests to test behavior, not implementation
+## Rewrite the unit tests to test behavior, not implementation
 
 Subprocess testing resources:
 
@@ -814,3 +814,441 @@ The old mocked of stack also mocked the connection manager. Now the real connect
 https://copyprogramming.com/howto/mocking-subproces-calls-in-python
 
 I don't know how to to test the `executable` parameter of the hook without resorting to mocks. I've posted a [question on Stack Overflow](https://stackoverflow.com/questions/77005909/how-do-i-test-that-a-given-shell-has-been-executed-in-python) for guidance.
+
+I got a simple solution to the problem: `echo $0`. See my own answer for details.
+
+I've replaced the old tests with new ones that cover all the cases I can think of.
+
+## Add examples to the documentation
+
+Read the [live documentation](https://docs.sceptre-project.org/latest/docs/hooks.html) for the `cmd` hook.
+
+Find the source code in the sceptre repo. (Trim results from the `.tox` directory.)
+
+```
+$ find -name 'hooks.*'
+./docs/_source/docs/hooks.rst
+```
+
+The documentation uses ReStructuredText syntax.
+
+How do I build the HTML from the documentation source?
+
+There is a Makefile in the docs directory.
+
+Start the `poetry shell` in docs.
+
+I get an error about a missing executable.
+
+```console
+$ make
+/bin/sh: 1: sphinx-build: not found
+make: *** [Makefile:12: help] Error 127
+```
+
+The Poertry project extras were missing. Fix that with the command from the CONTRIBUTING guide.
+
+```bash
+poetry install --all-extras -v
+```
+
+Now make runs Sphinx and shows the available actions.
+
+```console
+$ make
+Sphinx v5.1.1
+Please use `make target' where target is one of
+  html        to make standalone HTML files
+  dirhtml     to make HTML files named index.html in directories
+  singlehtml  to make a single large HTML file
+  pickle      to make pickle files
+  json        to make JSON files
+  htmlhelp    to make HTML files and an HTML help project
+  qthelp      to make HTML files and a qthelp project
+  devhelp     to make HTML files and a Devhelp project
+  epub        to make an epub
+  latex       to make LaTeX files, you can set PAPER=a4 or PAPER=letter
+  latexpdf    to make LaTeX and PDF files (default pdflatex)
+  latexpdfja  to make LaTeX files and run them through platex/dvipdfmx
+  text        to make text files
+  man         to make manual pages
+  texinfo     to make Texinfo files
+  info        to make Texinfo files and run them through makeinfo
+  gettext     to make PO message catalogs
+  changes     to make an overview of all changed/added/deprecated items
+  xml         to make Docutils-native XML files
+  pseudoxml   to make pseudoxml-XML files for display purposes
+  linkcheck   to check all external links for integrity
+  doctest     to run all doctests embedded in the documentation (if enabled)
+  coverage    to run coverage check of the documentation (if enabled)
+  clean       to remove everything in the build directory
+```
+
+There's nothing in the CONTRIBUTING guide about Sphinx or make.
+
+The targets in the help don't match what I see in the Makefile: `help`, `apidoc`, `clean`. I don't understand the Makefile format.
+
+Use project-local `.ackrc` ack to ignore places I don't want to search.
+
+```text
+--ignore-dir=.tox
+--ignore-file=is:poetry.lock
+```
+
+Sphinx appears here:
+
+```console
+$ ack -i -l sphinx
+docs/docs_requirements.txt
+docs/_source/docs/install.rst
+docs/_source/conf.py
+docs/Makefile
+CHANGELOG.md
+pyproject.toml
+.gitignore
+.circleci/github-pages.sh
+Makefile
+```
+
+The bigger Makefile at the root also doesn't correspond to what I see.
+
+```console
+$ make html
+make: *** No rule to make target 'html'.  Stop.
+```
+
+John Falkenstein [told me to use](https://og-aws.slack.com/archives/C01JNN8RGBB/p1693660241455129) `make docs`.
+
+It works! When the process completes, it opens a tab in Firefox at the following address:
+
+```text
+file:///home/isme/Repos/sceptre/docs/_build/html/index.html
+```
+
+The hooks file is here:
+
+```text
+file:///home/isme/Repos/sceptre/docs/_build/html/docs/hooks.html
+```
+
+Complete output from the process:
+
+```text
+rm -f docs/modules.rst
+poetry run sphinx-apidoc -o docs/ sceptre
+Creating file docs/sceptre.rst.
+Creating file docs/sceptre.cli.rst.
+Creating file docs/sceptre.config.rst.
+Creating file docs/sceptre.diffing.rst.
+Creating file docs/sceptre.hooks.rst.
+Creating file docs/sceptre.plan.rst.
+Creating file docs/sceptre.resolvers.rst.
+Creating file docs/sceptre.template_handlers.rst.
+Creating file docs/modules.rst.
+make -C docs clean
+make[1]: Entering directory '/home/isme/Repos/sceptre/docs'
+rm -f sceptre*rst
+rm -f modules.rst
+rm -rf _build
+make[1]: Leaving directory '/home/isme/Repos/sceptre/docs'
+make -C docs html
+make[1]: Entering directory '/home/isme/Repos/sceptre/docs'
+Running Sphinx v5.1.1
+making output directory... done
+loading intersphinx inventory from https://docs.python.org/3/objects.inv...
+loading intersphinx inventory from https://boto3.amazonaws.com/v1/documentation/api/latest/objects.inv...
+loading intersphinx inventory from https://zepworks.com/deepdiff/current/objects.inv...
+building [mo]: targets for 0 po files that are out of date
+building [html]: targets for 23 source files that are out of date
+updating environment: [new config] 23 added, 0 changed, 0 removed
+reading sources... [100%] index                                                       
+sceptre launch:1: ERROR: Unexpected indentation.
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+writing output... [100%] index                                                        
+/home/isme/Repos/sceptre/docs/_source/docs/stack_config.rst:132: WARNING: Could not lex literal_block as "yaml". Highlighting skipped.
+/home/isme/Repos/sceptre/docs/_source/docs/stack_config.rst:564: WARNING: Could not lex literal_block as "yaml". Highlighting skipped.
+generating indices... genindex py-modindex done
+highlighting module code... [100%] sceptre.template                                   
+writing additional pages... search done
+copying static files... done
+copying extra files... done
+dumping search index in English (code: en)... done
+dumping object inventory... done
+build succeeded, 3 warnings.
+
+The HTML pages are in _build/html.
+make[1]: Leaving directory '/home/isme/Repos/sceptre/docs'
+python -c "$BROWSER_PYSCRIPT" docs/_build/html/index.html
+```
+
+These lines appear in red and look like errors or warnings. I'll fix them later.
+
+```text
+sceptre launch:1: ERROR: Unexpected indentation.
+/home/isme/Repos/sceptre/docs/_source/docs/stack_config.rst:132: WARNING: Could not lex literal_block as "yaml". Highlighting skipped.
+/home/isme/Repos/sceptre/docs/_source/docs/stack_config.rst:564: WARNING: Could not lex literal_block as "yaml". Highlighting skipped.
+```
+
+Copy important details from the [`subprocess` module's documentation](https://docs.python.org/3/library/subprocess.html).
+
+Where is the right margin for the documentation source?
+
+Use Gnuplot to draw the sorted line lengths.
+
+```bash
+find docs/_source/docs -name '*.rst' -exec wc -L {} + \
+| grep -v " total$" \
+| awk '{print $1}' \
+| sort -n \
+| tee /dev/tty \
+| gnuplot -p -e '
+set xlabel "file";
+set ylabel "width";
+set xrange [0:];
+set yrange [0:];
+plot "/dev/stdin" using 1 with histograms
+'
+```
+
+![](cmd-hook-options_2023-09-02-23-43-38.png)
+
+Sorted line lengths:
+
+```text
+80
+92
+97
+100
+101
+107
+117
+117
+118
+119
+127
+141
+327
+```
+
+I don't really know what I'm doing yet with Gnuplot. It's a complex tool with a whole language to describe graphics. I figured out a basic thing from [Stack Overflow](https://stackoverflow.com/questions/2471884/histogram-using-gnuplot) and the [Gnuplot Surprising](http://gnuplot-surprising.blogspot.com/2011/09/statistic-analysis-and-histogram.html) blog.
+
+Remy van Elst's [Gnuplot walkthrough](https://raymii.org/s/tutorials/GNUplot_tips_for_nice_looking_charts_from_a_CSV_file.html) looks like a good way to learn more about it.
+
+```bash
+find docs/_source/docs -name '*.rst' -exec wc -L {} + | sort -n
+```
+
+Just show the margin for each file.
+
+```text
+    80 docs/_source/docs/terminology.rst
+    92 docs/_source/docs/cli.rst
+    97 docs/_source/docs/architecture.rst
+   100 docs/_source/docs/install.rst
+   101 docs/_source/docs/get_started.rst
+   107 docs/_source/docs/hooks.rst
+   117 docs/_source/docs/permissions.rst
+   117 docs/_source/docs/resolvers.rst
+   118 docs/_source/docs/template_handlers.rst
+   119 docs/_source/docs/faq.rst
+   127 docs/_source/docs/stack_config.rst
+   141 docs/_source/docs/stack_group_config.rst
+   327 docs/_source/docs/templates.rst
+   327 total
+```
+
+Use the VS Code rewrap plugin and set column to 100 for hooks.rst.
+
+```bash
+put() {
+    local path="$1"
+    local input
+    read -d '' input
+
+    mkdir --parents "$(dirname "$path")"
+    cat > "$path" <<< "$input"
+}
+
+tmp="$(mktemp --dir)"
+
+put "$tmp/config/config.yaml" <<"EOF"
+project_code: test
+region: eu-west-1
+EOF
+
+put "$tmp/templates/test.yaml" <<"EOF"
+Resources:
+  Dummy:
+    Type: AWS::CloudFormation::WaitConditionHandle
+EOF
+
+put "$tmp/config/test.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+  before_update:
+    - !cmd
+        command: echo $0
+        shell: bash
+EOF
+
+env --chdir "$tmp" sceptre launch --yes .
+```
+
+## Approval and feedback
+
+Khai Do (zaro0508) approved the changes! I addressed his feedback to improve the examples.
+
+## Confusing behavior of new syntax on old version
+
+When the hook uses new syntax like this:
+
+```yaml
+hooks:
+  before_update:
+    - !cmd
+        command: echo $0
+        shell: bash
+```
+
+And I switch to the latest tagged release before executing Sceptre:
+
+```bash
+git checkout v4.2.2
+```
+
+I would expect Sceptre to fail because of the unrecognized syntax.
+
+Instead it silently ignores the new syntax and proceeds as if there were no hook.
+
+The hook output, good or bad, would start after the "CREATE_COMPLETE" line.
+
+```text
+[2023-09-04 01:39:08] - test - Launching Stack
+[2023-09-04 01:39:09] - test - Stack is in the CREATE_COMPLETE state
+[2023-09-04 01:39:09] - test - Updating Stack
+[2023-09-04 01:39:09] - test - No updates to perform.
+```
+
+Use `check_call` directly to understand the behavior.
+
+```pycon
+>>> subprocess.check_call({"command": "echo $0", "shell": "bash"}, shell=True)
+0
+
+>>> subprocess.check_call({}, shell=True)
+/bin/sh: 0: -c requires an argument
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/python3.8/subprocess.py", line 364, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '{}' returned non-zero exit status 2.
+
+>>> subprocess.check_call({"shell": "echo $0", "command": "bash"}, shell=True)
+command: 1: shell: not found
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/python3.8/subprocess.py", line 364, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '{'shell': 'echo $0', 'command': 'bash'}' returned non-zero exit status 127.
+```
+
+On my system `sh` is `dash`. Use `dash` directly.
+
+This sets `$0` to `shell` and executes `command`. `command` is a built-in. With no arguments gives no output and returns exit code 0.
+
+```console
+$ sh -c command shell; echo $?
+0
+```
+
+The dash manual says when the `shift` command's argument is greater than the number of positional parameters, it gives exit code 2. I suppose something similar happened here.
+
+```console
+$ sh -c; echo $?
+sh: 0: -c requires an argument
+2
+```
+
+This sets `$0` to `command` and executes `shell`. `shell` does not exist as a command name, so this fails.
+
+```console
+$ sh -c shell command; echo $?
+command: 1: shell: not found
+127
+```
+
+Order the new syntax so that it should fail in dash.
+
+```bash
+put "$tmp/config/test.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+  before_update:
+    - !cmd
+        shell: bash
+        command: echo $0
+EOF
+
+env --chdir "$tmp" sceptre launch --yes .
+```
+
+Sceptre shows the same error from dash.
+
+```text
+[2023-09-04 02:24:22] - test - Launching Stack
+[2023-09-04 02:24:23] - test - Stack is in the CREATE_COMPLETE state
+command: 1: shell: not found
+Traceback (most recent call last):
+<snip>
+subprocess.CalledProcessError: Command '{'shell': 'bash', 'command': 'echo $0'}' returned non-zero exit status 127.
+```
+
+---
+
+Share this update on the PR.
+
+To avoid confusing people who try this on an old version, I want the new syntax to cause an error in Sceptre v4.2.2.
+
+When `command` is the first named argument, Sceptre v4.2.2 executes `sh -c command shell`. This has no output and returns 0, which makes it look like Sceptre just ignored the hook.
+
+As a compromise I suggest we rename `command` to `run` because it breaks in a more obvious way.
+
+```pycon
+>>> subprocess.check_call({"run": "echo $0", "shell": "bash"}, shell=True)
+shell: 1: run: not found
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/lib/python3.8/subprocess.py", line 364, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '{'run': 'echo $0', 'shell': 'bash'}' returned non-zero exit status 127.
+```
+
+[GitHub Actions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun) uses `run` to mean the same thing, so we would be in good company.
+
+Use this to test the renamed parameter.
+
+```bash
+put "$tmp/config/test.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+  before_update:
+    - !cmd
+        run: echo $0
+        shell: bash
+EOF
+
+env --chdir "$tmp" sceptre launch --yes .
+```
+
+---
+
+2023-09-12: After I refine the tests a few more times, I finally decide it's enough. Khai Do (zaro0508) accepted again. Now I wait for him to merge the changes.
