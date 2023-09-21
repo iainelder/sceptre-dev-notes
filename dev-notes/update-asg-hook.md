@@ -117,6 +117,12 @@ Of those matching commits, these commits explain the problem:
 
 Things I still don't know:
 
-* How does Sceptre map the `!hook_name` in a stack config to a hook implementation?
-* Are there any tests that parse YAML files? (Ask maintainers about the integration tests.)
+* How does Sceptre map the `!hook_name` in a stack config to a hook implementation? (Maybe has something to do with pyproject.toml, but how does it work at runtime?)
+* Are there any tests that parse YAML files?
 * How do I run the integration tests?
+
+Proposal:
+
+* add another mapping to pyproject.toml to support the documented name
+* deprecate the old name
+* really remove it in the next major version
