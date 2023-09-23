@@ -2,7 +2,7 @@
 
 ## Read commit history
 
-Read the commit history to undetstand how we got here.
+Read the commit history to understand how we got here.
 
 Working with commit 33404ee5486ff345ed738044aeb1cc3b71fdb129 (2023-09-01).
 
@@ -30,7 +30,7 @@ CHANGELOG.md:1
 pyproject.toml:1
 ```
 
-Read the CHANGELOG. Each string appears only once.
+Read the CHANGELOG. Each string appears once.
 
 ```markdown
 ## 1.3.0 (2017.10.16)
@@ -39,7 +39,7 @@ Read the CHANGELOG. Each string appears only once.
   `asg_scaling_processes` hook.
 ```
 
-Use this command to find commits that changed the number of ocurrences of one of the hook names. Thanks to [Simon Willison](https://til.simonwillison.net/jq/git-log-json) for the recipe.
+Use this command to find commits that changed the number of occurrences of one of the hook names. Thanks to [Simon Willison](https://til.simonwillison.net/jq/git-log-json) for the recipe.
 
 ```bash
 git log --reverse -S "(asg_scaling_processes|asg_scheduled_actions)" --pickaxe-regex --format="%cs%x00%h%x00%s" \
@@ -47,6 +47,7 @@ git log --reverse -S "(asg_scaling_processes|asg_scheduled_actions)" --pickaxe-r
 | jtbl -m
 ```
 
+<!-- vale off -->
 | commit date | commit hash | subject                                                   |
 |-------------|-------------|-----------------------------------------------------------|
 | 2017-01-31  | 70dfb57     | Initial commit                                            |
@@ -72,6 +73,7 @@ git log --reverse -S "(asg_scaling_processes|asg_scheduled_actions)" --pickaxe-r
 | 2018-11-30  | 7e4aef5     | Update Hooks doc                                          |
 | 2019-05-02  | 74f531e     | Improve documentation site (#655)                         |
 | 2023-04-20  | ac9e439     | [Resolves #894] Switch to using poetry (#1323)            |
+<!-- vale on -->
 
 Read through these commits to see what happened.
 
@@ -86,7 +88,7 @@ What follows is a summary of the matching commits.
 
 * 70dfb57, the initial commit, already has the asg_scheduled_actions hook.
 * d5008a4 adds the asg_scaling_processes hook.
-* 9aa3b98 documents the asg_scaling_prcesses hook.
+* 9aa3b98 documents the asg_scaling_processes hook.
 * 3ecf9cc documents both hooks in website/docs/stack_config.md. Today's asg_scaling_processes documentation looks like this.
 * 4e24b03 uses the Sphinx automodule directive to generate pages from the hook source code.
 * 3ed4aa1 moves the hook docs to website/docs/hooks.md.
@@ -95,8 +97,8 @@ What follows is a summary of the matching commits.
 * 1e9dba5 removes more duplicate content.
 * e52908b deprecates asg_scheduled_actions in favor of asg_scaling_processes.
 * d300d20 documents deprecation as a feature of version 1.3.0.
-* c995826 replaces aws_scheduled_actions with asg_scaling_processes in the hook docs examples and deletes the asg_scheduled_actions implementation and tests.
-* ec06452 introduces a entry point concept called `sceptre.hooks` and requires that hooks be installed as Python packages. This is more complicated than it used to be, when it would just read hooks from the `project/hooks/myhook.py`. That's how I want it to work!
+* c995826 replaces asg_scheduled_actions with asg_scaling_processes in the hook docs examples and deletes the asg_scheduled_actions implementation and tests.
+* ec06452 introduces a entry point concept called `sceptre.hooks` and requires that users create a Python package to add a hook. This is more complicated than it used to be, when it would just read hooks from the `project/hooks/myhook.py`. That's how I want it to work!
 * ec06452 changes the entry_points setting in setup.py to add a mapping for the built-in hooks asg_scaling_processes and cmd. It maps the asg_scaling_processes hook to the deleted name asg_scheduled_actions!
 * ec06452 in tests/test_config.py asserts that "!asg_scheduled_actions" is in ` yaml.SafeLoader.yaml_constructors`.
 * a48eb61 refactors the asg_scaling_processes hook and deletes tests_test_config.py that asserted the YAML local tags.
@@ -111,7 +113,7 @@ Of those matching commits, these commits explain the problem:
 
 * e52908b deprecates asg_scheduled_actions in favor of asg_scaling_processes.
 * d300d20 documents deprecation as a feature of version 1.3.0.
-* c995826 replaces aws_scheduled_actions with asg_scaling_processes in the hook docs examples and deletes the asg_scheduled_actions implementation and tests.
+* c995826 replaces asg_scheduled_actions with asg_scaling_processes in the hook docs examples and deletes the asg_scheduled_actions implementation and tests.
 * ec06452 changes the entry_points setting in setup.py to add a mapping for the built-in hooks asg_scaling_processes and cmd. It maps the asg_scaling_processes hook to the deleted name asg_scheduled_actions!
 * ac9e439 replaces setup.py with pyproject.toml. The replacement retains the name of the deleted hook as the entry point. in `tool.poetry.plugins."sceptre.hooks"`.
 
@@ -123,6 +125,6 @@ Things I still don't know:
 
 Proposal:
 
-* add another mapping to pyproject.toml to support the documented name
-* deprecate the old name
-* really remove it in the next major version
+* Add another mapping to pyproject.toml to support the documented name.
+* Deprecate the old name.
+* Remove it in the next major version.

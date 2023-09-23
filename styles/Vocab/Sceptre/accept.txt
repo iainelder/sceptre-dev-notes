@@ -1,10 +1,14 @@
 args
+asg_scaling_processes
+asg_scheduled_actions
+automodule
 [Cc]md
 config
 dev
 deadsnakes
 distutils
 docstring
+entry_points
 Elst
 Falkenstein
 gnuplot
@@ -16,9 +20,11 @@ moto
 Pintrest
 pytest
 Remy
+reformat
 repo
 Sottile
 subprocess
 testfixtures
 traceback
 walkthrough
+Willison
