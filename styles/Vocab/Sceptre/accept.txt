@@ -13,6 +13,7 @@ Elst
 Falkenstein
 gnuplot
 initializer
+IPython
 Khai
 kwargs
 Makefile

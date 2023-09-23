@@ -1,5 +1,7 @@
 # Update ASG Hook
 
+These are notes to resolve [Sceptre issue 841](https://github.com/Sceptre/sceptre/issues/841).
+
 ## Read commit history
 
 Read the commit history to understand how we got here.
@@ -97,7 +99,8 @@ What follows is a summary of the matching commits.
 * 1e9dba5 removes more duplicate content.
 * e52908b deprecates asg_scheduled_actions in favor of asg_scaling_processes.
 * d300d20 documents deprecation as a feature of version 1.3.0.
-* c995826 replaces asg_scheduled_actions with asg_scaling_processes in the hook docs examples and deletes the asg_scheduled_actions implementation and tests.
+* c995826 deletes asg_scheduled_actions docs, replaces examples and tests with asg_scaling_processes
+* c814e6a deletes the asg_scheduled_actions module and tests
 * ec06452 introduces a entry point concept called `sceptre.hooks` and requires that users create a Python package to add a hook. This is more complicated than it used to be, when it would just read hooks from the `project/hooks/myhook.py`. That's how I want it to work!
 * ec06452 changes the entry_points setting in setup.py to add a mapping for the built-in hooks asg_scaling_processes and cmd. It maps the asg_scaling_processes hook to the deleted name asg_scheduled_actions!
 * ec06452 in tests/test_config.py asserts that "!asg_scheduled_actions" is in ` yaml.SafeLoader.yaml_constructors`.
@@ -113,7 +116,8 @@ Of those matching commits, these commits explain the problem:
 
 * e52908b deprecates asg_scheduled_actions in favor of asg_scaling_processes.
 * d300d20 documents deprecation as a feature of version 1.3.0.
-* c995826 replaces asg_scheduled_actions with asg_scaling_processes in the hook docs examples and deletes the asg_scheduled_actions implementation and tests.
+* c995826 deletes asg_scheduled_actions docs, replaces examples and tests with asg_scaling_processes
+* c814e6a deletes the asg_scheduled_actions module and tests
 * ec06452 changes the entry_points setting in setup.py to add a mapping for the built-in hooks asg_scaling_processes and cmd. It maps the asg_scaling_processes hook to the deleted name asg_scheduled_actions!
 * ac9e439 replaces setup.py with pyproject.toml. The replacement retains the name of the deleted hook as the entry point. in `tool.poetry.plugins."sceptre.hooks"`.
 
@@ -128,3 +132,266 @@ Proposal:
 * Add another mapping to pyproject.toml to support the documented name.
 * Deprecate the old name.
 * Remove it in the next major version.
+
+## Find out how Sceptre looks up hooks
+
+Create a minimal project with a fake hook called `!fakehook`.
+
+```bash
+put() {
+    local path="$1"
+    local input
+    read -d '' input
+
+    mkdir --parents "$(dirname "$path")"
+    cat > "$path" <<< "$input"
+}
+
+tmp="$(mktempdir)"
+
+put "$tmp/templates/test.yaml" <<"EOF"
+Resources:
+  Dummy:
+    Type: AWS::CloudFormation::WaitConditionHandle
+EOF
+
+put "$tmp/config/test.yaml" <<"EOF"
+template:
+  type: file
+  path: test.yaml
+hooks:
+    before_update:
+        - !fakehook 'A fake hook'
+EOF
+
+put "$tmp/config/config.yaml" <<"EOF"
+project_code: test
+region: eu-west-1
+EOF
+```
+
+Set the AWS session context to my sandbox management account.
+
+Launch the Sceptre project using the source version, not the globally installed one.
+
+```bash
+env --chdir="$HOME/Repos/sceptre" poetry run env --chdir="$tmp" sceptre launch .
+```
+
+The traceback ends with these lines.
+
+```text
+  File "/home/isme/.local/pipx/venvs/sceptre/lib/python3.8/site-packages/sceptre/config/reader.py", line 496, in _render
+    raise ValueError(message)
+ValueError: Error parsing /tmp/dir.D7k/config/test.yaml:
+could not determine a constructor for the tag '!fakehook'
+  in "<unicode string>", line 6, column 11:
+            - !fakehook 'A fake hook'
+              ^
+```
+
+Read `sceptre/config/reader.py`.
+
+The `_render` function raises the exception when Sceptre tries to load the config file.
+
+```python
+try:
+    config = yaml.safe_load(rendered_template)
+except Exception as err:
+    message = f"Error parsing {abs_directory_path}{basename}:\n{err}"
+
+    if logging_level() == logging.DEBUG:
+        debug_file_path = self._write_debug_file(
+            rendered_template, prefix="rendered_"
+        )
+        message += f"\nRendered template saved to: {debug_file_path}"
+
+    raise ValueError(message)
+```
+
+The `_add_yaml_constructors` function registers constructors with the YAML loader. It derives constructors from groups of entry points.
+
+```python
+for group in entry_point_groups:
+    for entry_point in self._iterate_entry_points(group):
+        # Retrieve name and class from entry point
+        node_tag = "!" + entry_point.name
+        node_class = entry_point.load()
+
+        # Add constructor to PyYAML loader
+        yaml.SafeLoader.add_constructor(
+            node_tag, constructor_factory(node_class)
+        )
+        self.logger.debug(
+            "Added constructor for %s with node tag %s",
+            str(node_class),
+            node_tag,
+        )
+```
+
+The `__init__` function passes the group of hooks and the group of resolvers.
+
+```python
+self._add_yaml_constructors(["sceptre.hooks", "sceptre.resolvers"])
+```
+
+The `_iterate_entry_points` function gives an iterator of entry points. The
+implementation depends on the Python version.
+
+```python
+@staticmethod
+def _iterate_entry_points(group):
+    """
+    Helper to determine whether to use pkg_resources or importlib.metadata.
+    https://docs.python.org/3/library/importlib.metadata.html
+    """
+    if sys.version_info < (3, 10):
+        from pkg_resources import iter_entry_points
+
+        return iter_entry_points(group)
+    else:
+        from importlib.metadata import entry_points
+
+        return entry_points(group=group)
+```
+
+I use Python 3.8 by default, so I use the `pkg_resources` method.
+
+Use IPython to check the output for `sceptre.hooks`.
+
+```bash
+env --chdir="${HOME}/Repos/sceptre" poetry run ipython --no-confirm-exit -i -c 'from pkg_resources import iter_entry_points'
+```
+
+Before I run any commands it outputs this message. It's the same deprecation warning I see every time I use Sceptre.
+
+```text
+<ipython-input-1-8ba4d65907b8>:1: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+  from pkg_resources import iter_entry_points
+```
+
+```python
+list(iter_entry_points("sceptre.hooks"))
+```
+
+```python
+[EntryPoint.parse('asg_scheduled_actions = sceptre.hooks.asg_scaling_processes:ASGScalingProcesses'),
+ EntryPoint.parse('cmd = sceptre.hooks.cmd:Cmd')]
+```
+
+The EntryPoint list looks like this config from `pyproject.toml`.
+
+```toml
+[tool.poetry.plugins."sceptre.hooks"]
+"asg_scheduled_actions" = "sceptre.hooks.asg_scaling_processes:ASGScalingProcesses"
+"cmd" = "sceptre.hooks.cmd:Cmd"
+```
+
+The EntryPoint object gives the hook name and class.
+
+```python
+[
+    (entry_point.name, entry_point.load())
+    for entry_point in iter_entry_points("sceptre.hooks")
+]
+```
+
+```python
+[('asg_scheduled_actions',
+  sceptre.hooks.asg_scaling_processes.ASGScalingProcesses),
+ ('cmd', sceptre.hooks.cmd.Cmd)]
+```
+
+`_add_yaml_constructors` registers each hook like this:
+
+```python
+yaml.SafeLoader.add_constructor(node_tag, constructor_factory(node_class))
+```
+
+I won't go into the `constructor_factory` wrapper yet. It does some gnarly stuff to make an interface for PyYAML.
+
+Can I change the set of loaded constructors by changing `pyproject.toml`?
+
+Add this line to the hooks config:
+
+```text
+"fakehook" = "sceptre.hooks.fakehook:FakeHook"
+```
+
+Reinstall the project.
+
+```bash
+env --chdir="${HOME}/Repos/sceptre" poetry install --all-extras -v
+```
+
+Inspect the entry points again in IPython.
+
+```python
+list(iter_entry_points("sceptre.hooks"))
+```
+
+A new `fakehook` entrypoint exists.
+
+```python
+[EntryPoint.parse('asg_scheduled_actions = sceptre.hooks.asg_scaling_processes:ASGScalingProcesses'),
+ EntryPoint.parse('cmd = sceptre.hooks.cmd:Cmd'),
+ EntryPoint.parse('fakehook = sceptre.hooks.fakehook:FakeHook')]
+```
+
+Load the entrypoint classes.
+
+```python
+[
+    (entry_point.name, entry_point.load())
+    for entry_point in iter_entry_points("sceptre.hooks")
+]
+```
+
+It gives an error because the module doesn't exist.
+
+```text
+ModuleNotFoundError: No module named 'sceptre.hooks.fakehook'
+```
+
+## Prepare commit on issue
+
+These commits show the important hook history. The comment is my interpretation.
+
+| commit date | commit hash | comment                                                                  |
+|-------------|-------------|--------------------------------------------------------------------------|
+| 2017-01-31  | 70dfb57     | Start with the asg_scheduled_actions hook                                |
+| 2017-03-30  | d5008a4     | Add the asg_scaling_processes hook                                       |
+| 2017-05-15  | 3ecf9cc     | Document both hooks (Today's docs haven't changed)                       |
+| 2017-10-11  | e52908b     | Deprecate asg_scheduled_actions in favor of asg_scaling_processes (#216) |
+| 2017-10-16  | d300d20     | Document deprecation as a feature of version 1.3.0                       |
+| 2017-11-29  | c995826     | Remove asg_scheduled_actions from docs and tests                         |
+| 2017-11-29  | c814e6a     | Delete asg_scheduled_actions module and tests                            |
+| 2017-11-29  | ec06452     | Register hooks using entry points (#205) (More on this below)            |
+| 2023-04-20  | ac9e439     | Move entry points from setup.py to pyproject.toml                        |
+
+The authors intended to replace asg_scheduled_actions with asg_scaling_processes.
+
+But commit ec06452 introduced this bug by retaining the asg_scheduled_actions name for the entry point.
+
+Sceptre would have avoided the confusion by naming the entry point asg_scaling_processes.
+
+This major version of Sceptre needs to keep supporting the old name.
+
+The next minor version can deprecate the old name and add the documented name as another entry point for the same hook.
+
+The next major version can remove the old name.
+
+## Prepare PR
+
+Given the above, the fix is one line in pyproject.toml.
+
+```diff
+ [tool.poetry.plugins."sceptre.hooks"]
+ "asg_scheduled_actions" = "sceptre.hooks.asg_scaling_processes:ASGScalingProcesses"
++"asg_scaling_processes" = "sceptre.hooks.asg_scaling_processes:ASGScalingProcesses"
+ "cmd" = "sceptre.hooks.cmd:Cmd"
+```
+
+See [PR 1374](https://github.com/Sceptre/sceptre/pull/1374) for discussion.
+
+I've asked for feedback about tests and deprecation.
