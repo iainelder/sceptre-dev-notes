@@ -133,7 +133,7 @@ I thought that pre-commit ran hooks in Docker containers, but that must be wrong
 
 I find the same problem with black reported in [the pre-commit project](https://github.com/pre-commit/pre-commit/issues/1761).
 
-Anothony Sottile, the pre-commit maintainer, also uses Ubuntu and maintains the deadsnakes PPA for Python packages.
+Anthony Sottile, the pre-commit maintainer, also uses Ubuntu and maintains the deadsnakes PPA for Python packages.
 
 Use [the deadsnakes PPA](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa) to install a version of Python 3.10.
 
@@ -157,13 +157,13 @@ The [contributing guide](https://github.com/Sceptre/sceptre/blob/master/CONTRIBU
 poetry run tox
 ```
 
-To pass all the unit tests I need to install all the supported Python versions. Python 3.10 was alreay installed for black.
+To pass all the unit tests I need to install all the supported Python versions. Python 3.10 was already installed for black.
 
 ```bash
 sudo apt install python3.7 python3.9 python3.11
 ```
 
-Tox still fails on Python 3.7 because of a missing depdency.
+Tox still fails on Python 3.7 because of a missing dependency.
 
 ```bash
 poetry run tox -e py37
@@ -205,7 +205,9 @@ The `run` method take no arguments, so the command string must be handled in the
 
 `Hook`'s superclass is `CustomYamlTagBase`.
 
-`CustomYamlTagBase`'s docstring starts "A base class for custom Yaml Elements (i.e. hooks and resolvers).".
+`CustomYamlTagBase`'s docstring starts:
+
+> A base class for custom Yaml Elements (i.e. hooks and resolvers).
 
 `CustomYamlTagBase`'s `__init__` method takes two keyword arguments `argument` and `stack`. It assigns `argument` to `self._argument` and assigns `stack` to `self.stack`. The class defines an `argument` property that either just returns `self._argument` or calls `self._resolve_argument`.
 
@@ -241,7 +243,7 @@ Next steps:
 
 There is already a lot of test material in the tests folder. I'll ignore it for now and set up just what I need for a proof of concept.
 
-I will trim all the deprecation warnings and full stace traces from the outputs except when relevant.
+I will trim all the deprecation warnings and full stack traces from the outputs except when relevant.
 
 Add args to the hook.
 
@@ -418,7 +420,7 @@ Traceback (most recent call last):
 FileNotFoundError: [Errno 2] No such file or directory: '/bin/sh -e'
 ```
 
-In this case it looks like the easier thing to do is just ignore shell mode and build the command string directly. Se this [Stack Overflow](https://stackoverflow.com/a/15782232/111424) answer for inspiration.
+In this case it looks like the easier thing to do is just ignore shell mode and build the command string directly. See this [Stack Overflow](https://stackoverflow.com/a/15782232/111424) answer for inspiration.
 
 ```python
 shell = "bash -e"
@@ -427,7 +429,7 @@ args = shlex.split(shell) + ["-c", cmd]
 subprocess.check_call(args)
 ```
 
-I'm not sure whether it's okay to hard-code the `"-c"` part. It's part of `sh''s [Posix standard](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html), so maybe it is.
+I'm not sure whether it's okay to hard-code the `"-c"` part. It's part of `sh`'s [POSIX standard](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html), so maybe it is.
 
 ---
 
@@ -813,7 +815,7 @@ The old mocked of stack also mocked the connection manager. Now the real connect
 
 https://copyprogramming.com/howto/mocking-subproces-calls-in-python
 
-I don't know how to to test the `executable` parameter of the hook without resorting to mocks. I've posted a [question on Stack Overflow](https://stackoverflow.com/questions/77005909/how-do-i-test-that-a-given-shell-has-been-executed-in-python) for guidance.
+I don't know how to test the `executable` parameter of the hook without resorting to mocks. I've posted a [question on Stack Overflow](https://stackoverflow.com/questions/77005909/how-do-i-test-that-a-given-shell-has-been-executed-in-python) for guidance.
 
 I got a simple solution to the problem: `echo $0`. See my own answer for details.
 
@@ -846,7 +848,7 @@ $ make
 make: *** [Makefile:12: help] Error 127
 ```
 
-The Poertry project extras were missing. Fix that with the command from the CONTRIBUTING guide.
+The Poetry project extras were missing. Fix that with the command from the CONTRIBUTING guide.
 
 ```bash
 poetry install --all-extras -v
@@ -888,7 +890,7 @@ There's nothing in the CONTRIBUTING guide about Sphinx or make.
 
 The targets in the help don't match what I see in the Makefile: `help`, `apidoc`, `clean`. I don't understand the Makefile format.
 
-Use project-local `.ackrc` ack to ignore places I don't want to search.
+Use project-local `.ackrc` to ignore places I don't want to search.
 
 ```text
 --ignore-dir=.tox
@@ -996,7 +998,7 @@ Copy important details from the [`subprocess` module's documentation](https://do
 
 Where is the right margin for the documentation source?
 
-Use Gnuplot to draw the sorted line lengths.
+Use gnuplot to draw the sorted line lengths.
 
 ```bash
 find docs/_source/docs -name '*.rst' -exec wc -L {} + \
@@ -1035,7 +1037,7 @@ Sorted line lengths:
 
 I don't really know what I'm doing yet with Gnuplot. It's a complex tool with a whole language to describe graphics. I figured out a basic thing from [Stack Overflow](https://stackoverflow.com/questions/2471884/histogram-using-gnuplot) and the [Gnuplot Surprising](http://gnuplot-surprising.blogspot.com/2011/09/statistic-analysis-and-histogram.html) blog.
 
-Remy van Elst's [Gnuplot walkthrough](https://raymii.org/s/tutorials/GNUplot_tips_for_nice_looking_charts_from_a_CSV_file.html) looks like a good way to learn more about it.
+Remy van Elst's [gnuplot walkthrough](https://raymii.org/s/tutorials/GNUplot_tips_for_nice_looking_charts_from_a_CSV_file.html) looks like a good way to learn more about it.
 
 ```bash
 find docs/_source/docs -name '*.rst' -exec wc -L {} + | sort -n
