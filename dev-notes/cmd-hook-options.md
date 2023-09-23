@@ -685,7 +685,7 @@ pytest --lf
 Test session starts (platform: linux, Python 3.8.10, pytest 6.2.5, pytest-sugar 0.9.7)
 rootdir: /home/isme/Repos/sceptre
 plugins: requests-mock-1.11.0, cov-2.12.1, sugar-0.9.7
-collected 637 items / 635 deselected / 2 selected                                    
+collected 637 items / 635 deselected / 2 selected
 run-last-failure: rerun previous 2 failures
 
 
@@ -698,34 +698,34 @@ self = <tests.test_hooks.test_cmd.TestCmd object at 0x7f00930dde50>
         with pytest.raises(InvalidHookArgumentTypeError):
 >           self.cmd.run()
 
-tests/test_hooks/test_cmd.py:21: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_hooks/test_cmd.py:21:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = !Cmd
 
     def run(self):
         """
         Runs the argument string in a subprocess.
-    
+
         :raises: sceptre.exceptions.InvalidTaskArgumentTypeException
         :raises: subprocess.CalledProcessError
         """
         envs = self.stack.connection_manager.create_session_environment_variables()
-    
+
         if isinstance(self.argument, str):
             args = self.argument
             executable = None
         elif isinstance(self.argument, dict):
             args = self.argument["args"]
             executable = self.argument["executable"]
-    
+
         try:
 >           subprocess.check_call(args, shell=True, env=envs, executable=executable)
 E           UnboundLocalError: local variable 'args' referenced before assignment
 
 sceptre/hooks/cmd.py:31: UnboundLocalError
 
- tests/test_hooks/test_cmd.py ⨯                                         50% █████     
+ tests/test_hooks/test_cmd.py ⨯                                         50% █████
 
 ――――――――――――――――――――――――― TestCmd.test_run_with_str_argument ―――――――――――――――――――――――――
 
@@ -741,11 +741,11 @@ mock_call = <MagicMock name='check_call' id='139640442540864'>
         )
 >       mock_call.assert_called_once_with("echo hello", shell=True, env=expected_envs)
 
-tests/test_hooks/test_cmd.py:30: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_hooks/test_cmd.py:30:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 /usr/lib/python3.8/unittest/mock.py:925: in assert_called_once_with
     return self.assert_called_with(*args, **kwargs)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <MagicMock name='check_call' id='139640442540864'>, args = ('echo hello',)
 kwargs = {'env': <Mock name='mock.connection_manager.create_session_environment_variables()' id='139640442395184'>, 'shell': True}
@@ -756,7 +756,7 @@ cause = None
 
     def assert_called_with(self, /, *args, **kwargs):
         """assert that the last call was made with the specified arguments.
-    
+
         Raises an AssertionError if the args and keyword args passed in are
         different to the last call to the mock."""
         if self.call_args is None:
@@ -765,7 +765,7 @@ cause = None
             error_message = ('expected call not found.\nExpected: %s\nActual: %s'
                     % (expected, actual))
             raise AssertionError(error_message)
-    
+
         def _error_message():
             msg = self._format_mock_failure_message(args, kwargs)
             return msg
@@ -963,17 +963,17 @@ loading intersphinx inventory from https://zepworks.com/deepdiff/current/objects
 building [mo]: targets for 0 po files that are out of date
 building [html]: targets for 23 source files that are out of date
 updating environment: [new config] 23 added, 0 changed, 0 removed
-reading sources... [100%] index                                                       
+reading sources... [100%] index
 sceptre launch:1: ERROR: Unexpected indentation.
 looking for now-outdated files... none found
 pickling environment... done
 checking consistency... done
 preparing documents... done
-writing output... [100%] index                                                        
+writing output... [100%] index
 /home/isme/Repos/sceptre/docs/_source/docs/stack_config.rst:132: WARNING: Could not lex literal_block as "yaml". Highlighting skipped.
 /home/isme/Repos/sceptre/docs/_source/docs/stack_config.rst:564: WARNING: Could not lex literal_block as "yaml". Highlighting skipped.
 generating indices... genindex py-modindex done
-highlighting module code... [100%] sceptre.template                                   
+highlighting module code... [100%] sceptre.template
 writing additional pages... search done
 copying static files... done
 copying extra files... done
