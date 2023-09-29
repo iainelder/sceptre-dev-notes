@@ -1,3 +1,4 @@
+ack
 args
 asg_scaling_processes
 asg_scheduled_actions
@@ -14,10 +15,12 @@ Falkenstein
 gnuplot
 initializer
 IPython
+jc
 Khai
 kwargs
 Makefile
 moto
+nkmk
 Pintrest
 pytest
 Remy

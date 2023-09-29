@@ -7,3 +7,202 @@ Ideas:
 * Search for `version_info` from `sys`
 * Search for `3.7`
 * Search for `python_version` from `platform`
+* Search for `python_version_tuple` from `platform` (learned via [nkmk](https://note.nkmk.me/en/python-sys-platform-version-info/)'s blog).
+
+Search code for references to Python versions. A 3 followed by a number between 0 and 19 inclusive separated by some non-digits.
+
+```bash
+ack --ignore-dir=test-reports -- '\b3\b\D+\b([0-9]|[12][0-9])\b' \
+| sed -E 's/^([^:]+):([^:]+):/\1\x00\2\x00/' \
+| jq -R -c 'split("\u0000") | {"path": "`\(.[0])`", "line": .[1], "text": "`\(.[2])`"}' \
+| jtbl -m
+```
+
+TODO: Ask Kelly Jon Brazil to add an ack parser to jc.
+
+| path                                                       | line | text                                                                                                              |
+|------------------------------------------------------------|------|-------------------------------------------------------------------------------------------------------------------|
+| `integration-tests/features/dependency-resolution.feature` | 9    | `    And that stack "3/A" was created before "3/B"`                                                               |
+| `integration-tests/features/dependency-resolution.feature` | 10   | `    And that stack "3/B" was created before "3/C"`                                                               |
+| `integration-tests/features/delete-stack.feature`          | 21   | `    and stack "3/A" depends on stack "4/C"`                                                                      |
+| `sceptre/connection_manager.py`                            | 133  | `            "profile='{1}', stack_name='{2}', sceptre_role='{3}', sceptre_role_session_duration='{4}')".format(` |
+| `sceptre/__init__.py`                                      | 7    | `if sys.version_info < (3, 8):`                                                                                   |
+| `sceptre/__init__.py`                                      | 18   | `# http://docs.python.org/3.3/howto/logging.html#configuring-logging-for-a-library`                               |
+| `sceptre/config/reader.py`                                 | 144  | `        if sys.version_info < (3, 10):`                                                                          |
+| `sceptre/config/__init__.py`                               | 11   | `# http://docs.python.org/3.3/howto/logging.html#configuring-logging-for-a-library`                               |
+| `sceptre/template.py`                                      | 242  | `        if sys.version_info < (3, 10):`                                                                          |
+| `sceptre/plan/__init__.py`                                 | 11   | `# http://docs.python.org/3.3/howto/logging.html#configuring-logging-for-a-library`                               |
+| `CHANGELOG.md`                                             | 96   | `## 3.3.0 (2023.02.06)`                                                                                           |
+| `CHANGELOG.md`                                             | 139  | `## 3.2.0 (2022.09.20)`                                                                                           |
+| `CHANGELOG.md`                                             | 142  | ` - [Resolve #1225] Added Python 3.10 support (#1227)`                                                            |
+| `CHANGELOG.md`                                             | 149  | ` - [Resolve #1225] Updating `troposphere` version for python 3.10 compatibility (#1226)`                         |
+| `CHANGELOG.md`                                             | 150  | ` - [Resolve #1225] Updating Sceptre to use importlib on Python 3.10 (#1240)`                                     |
+| `CHANGELOG.md`                                             | 163  | ` - Updated sceptre-circleci docker image for Python 3.10 support (#1230)`                                        |
+| `CHANGELOG.md`                                             | 166  | `## 3.1.0 (2022.04.13)`                                                                                           |
+| `CHANGELOG.md`                                             | 174  | `## 3.0.0 (2022.02.22)`                                                                                           |
+| `CHANGELOG.md`                                             | 177  | ` - Python 3.6 support has been removed due to that version reaching end-of-life status`                          |
+| `CHANGELOG.md`                                             | 275  | `- Update docker container to use Python 3.7`                                                                     |
+| `CHANGELOG.md`                                             | 295  | `- Added support for python 3.8 & 3.9`                                                                            |
+| `CHANGELOG.md`                                             | 302  | `- Removed support for python 2.7 & 3.5`                                                                          |
+| `CHANGELOG.md`                                             | 333  | `## 2.3.0 (2020.02.03)`                                                                                           |
+| `CHANGELOG.md`                                             | 359  | `- Keep version `1.3.4` and `1.4.2` active on github pages`                                                       |
+| `CHANGELOG.md`                                             | 361  | `- Upgrade Dockerfile to Alpine 3.10`                                                                             |
+| `CHANGELOG.md`                                             | 370  | `- `typing` install dependency for Python version < 3.5`                                                          |
+| `CHANGELOG.md`                                             | 428  | `- Officially support Python 3.7`                                                                                 |
+| `CHANGELOG.md`                                             | 646  | `## 1.3.4 (2018-02-19)`                                                                                           |
+| `CHANGELOG.md`                                             | 651  | `##1.3.3 (2018-02-19)`                                                                                            |
+| `CHANGELOG.md`                                             | 653  | `- Released in Error. Contained breaking changes from v2. Fixed in 1.3.4.`                                        |
+| `CHANGELOG.md`                                             | 655  | `## 1.3.2 (2017.11.28)`                                                                                           |
+| `CHANGELOG.md`                                             | 663  | `## 1.3.1 (2017.10.23)`                                                                                           |
+| `CHANGELOG.md`                                             | 669  | `## 1.3.0 (2017.10.16)`                                                                                           |
+| `CHANGELOG.md`                                             | 713  | `## 1.1.0 (2017.3.3)`                                                                                             |
+| `CHANGELOG.md`                                             | 1032 | `- Bumping boto3 dependency version to 1.3.1.`                                                                    |
+| `CHANGELOG.md`                                             | 1155 | `## 0.3.2 (2016.03.10)`                                                                                           |
+| `CHANGELOG.md`                                             | 1159 | `## 0.3.1 (2016.03.10)`                                                                                           |
+| `CHANGELOG.md`                                             | 1163 | `## 0.3.0 (2016.03.09)`                                                                                           |
+| `Dockerfile`                                               | 1    | `FROM python:3.10-alpine`                                                                                         |
+| `pyproject.toml`                                           | 18   | `  "Programming Language :: Python :: 3.7",`                                                                      |
+| `pyproject.toml`                                           | 19   | `  "Programming Language :: Python :: 3.8",`                                                                      |
+| `pyproject.toml`                                           | 20   | `  "Programming Language :: Python :: 3.9",`                                                                      |
+| `pyproject.toml`                                           | 21   | `  "Programming Language :: Python :: 3.10",`                                                                     |
+| `pyproject.toml`                                           | 22   | `  "Programming Language :: Python :: 3.11"`                                                                      |
+| `pyproject.toml`                                           | 50   | `python = ">=3.7,<3.12"`                                                                                          |
+| `pyproject.toml`                                           | 56   | `jinja2 = "^3.0"`                                                                                                 |
+| `pyproject.toml`                                           | 57   | `jsonschema = "~3.2"`                                                                                             |
+| `pyproject.toml`                                           | 84   | `freezegun = ">=0.3.12,<0.4.0"`                                                                                   |
+| `pyproject.toml`                                           | 91   | `tox = "^3.23.0"`                                                                                                 |
+| `tests/test_template_handlers/test_helper.py`              | 75   | `@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires Python >= 3.8")`                                 |
+| `tests/test_hooks/test_cmd.py`                             | 93   | `    if platform.python_version().startswith("3.7."):`                                                            |
+| `tests/test_cli/test_prune.py`                             | 158  | `        self.all_stacks[3].dependencies.append(self.all_stacks[1])`                                              |
+| `tests/test_cli/test_prune.py`                             | 179  | `        self.all_stacks[3].dependencies.append(self.all_stacks[1])`                                              |
+| `tests/test_cli/test_prune.py`                             | 193  | `        self.all_stacks[3].dependencies.append(self.all_stacks[1])`                                              |
+| `tests/test_helpers.py`                                    | 193  | `        arg = [(a, 1), (a, 3), (b, 0), (b, 2)]`                                                                  |
+| `tests/test_config_reader.py`                              | 333  | `                {"A/3", "A/2", "A/1"},`                                                                          |
+| `tests/test_config_reader.py`                              | 334  | `                {"A/3", "A/2", "A/1"},`                                                                          |
+| `tests/test_actions.py`                                    | 955  | `        if sys.version_info < (3, 8):`                                                                           |
+| `tests/test_actions.py`                                    | 995  | `                            2016, 3, 15, 14, 1, 0, 0, tzinfo=tzutc()`                                            |
+| `tests/test_actions.py`                                    | 1004 | `                            2016, 3, 15, 14, 2, 0, 0, tzinfo=tzutc()`                                            |
+| `tests/test_actions.py`                                    | 1013 | `                datetime.datetime(2016, 3, 15, 14, 0, 0, 0, tzinfo=tzutc())`                                     |
+| `tests/test_actions.py`                                    | 1042 | `                            2023, 8, 15, 14, 3, 0, 0, tzinfo=tzutc()`                                            |
+| `tests/test_resolvers/test_resolver.py`                    | 461  | `        expected = {"a": 4, "c": 3, "f": 5}`                                                                     |
+| `tests/test_resolvers/test_resolver.py`                    | 527  | `        expected = [1, 3, 6]`                                                                                    |
+| `.circleci/documentation-versions.py`                      | 38   | `KEEP_VERSIONS = ["1.5.0", "1.4.2", "1.3.4"]  # these versions won't be removed`                                  |
+
+Put it all together (gives same results).
+
+```bash
+ack --ignore-dir=test-reports -- '(\b3\b\D+\b([0-9]|[12][0-9])\b|version_info|python_version|python_version_tuple)' \
+| sed -E 's/^([^:]+):([^:]+):/\1\x00\2\x00/' \
+| jq -R -c 'split("\u0000") | {"path": "`\(.[0])`", "line": .[1], "text": "`\(.[2])`"}' \
+| jtbl -m
+```
+
+The changelog shows that Sceptre has already added and dropped support for old Python versions.
+
+Since the changelog is prose, I can search it with a more selective regex to get a summary of Python version changes. I search in VS Code with pattern `(?<!\.)\b[23]\.\d+(?!\.\d+|rc)`. Or with a simpler pattern `[Pp][Yy].*[23]\.`.
+
+Matching changelog entries:
+
+```markdown
+## 3.2.0 (2022.09.20)
+
+### Added
+ - [Resolve #1225] Added Python 3.10 support (#1227)
+
+### Changed
+ - [Resolve #1225] Updating `troposphere` version for python 3.10 compatibility (#1226)
+ - [Resolve #1225] Updating Sceptre to use importlib on Python 3.10 (#1240)
+
+### Nonfunctional
+ - Updated sceptre-circleci docker image for Python 3.10 support (#1230)
+
+## 3.0.0 (2022.02.22)
+
+### Breaking Changes
+ - Python 3.6 support has been removed due to that version reaching end-of-life status
+
+### Removed
+ - [Resolves #1201] Remove Py3.6 support (#1206)
+
+## 2.6.0 (2021.07.29)
+
+### Added
+
+- Update docker container to use Python 3.7
+
+## 2.5.0 (2021.05.01)
+
+### Added
+
+- Added support for python 3.8 & 3.9
+
+### Removed
+
+- Removed support for python 2.7 & 3.5
+
+## 2.4.0 (2020.10.03)
+
+- Remove documented support for Python 2.7
+
+## 2.2.1 (2019.08.19)
+
+### Fixed
+
+- `typing` install dependency for Python version < 3.5
+
+## 2.1.4 (2019.06.26)
+
+### Nonfunctional
+
+- Officially support Python 3.7
+
+## 0.1.1 (2016.03.08)
+
+- Updating tox to only support Python 2.6 versions > 2.6.9.
+```
+
+The `git tag` command shows that tags are missing for v0.1.1` and v2.4.0. The repo's commit history stops at 2017, so missing v0.1.1 makes sense. But missing v2.4.0 looks like a mistake.
+
+Use this command to summarize the tags in the changelog extract and any commits that refer to a Python version.
+
+```bash
+git log --no-walk=sorted --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" \
+    $(git log --format="%H" --grep='[Pp][Yy].*[23]\.') \
+    $(git tag --format="%(objectname)" --list v3.2.0 v3.0.0 v2.6.0 v2.5.0 v2.4.0 v2.2.1 v2.1.4 v0.1.1) \
+| jq -R -c 'split("\u0000") | {"commit date": .[0], "commit hash": .[1], "descriptor": .[2], "subject": .[3]}' \
+| jtbl -m
+```
+
+<!-- vale off -->
+| commit date | commit hash | descriptor         | subject                                                                     |
+|-------------|-------------|--------------------|-----------------------------------------------------------------------------|
+| 2023-08-13  | 5d574b7     | v4.2.2-1-g5d574b7  | [Resolve #1370] Use Python 3.11 for Black (#1371)                           |
+| 2023-07-18  | 6f6773a     | v4.2.1-1-g6f6773a  | [Resolve #1358] Updating PyYaml to ^6.0 (#1359)                             |
+| 2022-09-23  | 7d6da28     | v3.2.0             | creating v3.2.0 release (#1254)                                             |
+| 2022-06-17  | d932f27     | v3.1.0-10-gd932f27 | [Resolves #1225] Support python 3.10 (#1227)                                |
+| 2022-06-16  | a0fc6ff     | v3.1.0-9-ga0fc6ff  | Update sceptre to use importlib (#1240)                                     |
+| 2022-06-10  | f994eb7     | v3.1.0-7-gf994eb7  | update sceptre-circleci docker image (#1230)                                |
+| 2022-05-26  | f2b9118     | v3.1.0-4-gf2b9118  | Update troposphere version (#1226)                                          |
+| 2022-02-22  | e7f03b4     | v3.0.0             | Sceptre v3.0.0 Release details (#1207)                                      |
+| 2022-02-22  | 27f0b9f     | v2.7.1-11-g27f0b9f | [Resolves #1201] Fix dependency conflict (#1206)                            |
+| 2021-10-31  | 0953d4b     | v2.6.3-30-g0953d4b | Remove .python-version file (#1146)                                         |
+| 2021-09-15  | 400b488     | v2.6.3-5-g400b488  | [Resolves #582] update imp to importlib (#1092)                             |
+| 2021-07-29  | 8a1649a     | v2.6.0             | bump version 2.5.0 -> 2.6.0 and update changelog                            |
+| 2021-06-04  | fce128a     | v2.5.0-11-gfce128a | Update Docker to Python 3.7 (#1054)                                         |
+| 2021-05-01  | c84abac     | v2.5.0             | bump version v2.4.0 -> v2.5.0                                               |
+| 2021-04-29  | 19d0a4f     | v2.3.0-51-g19d0a4f | [Resolves #1005] Testing uplift (#1022)                                     |
+| 2021-04-23  | 339780d     | v2.3.0-46-g339780d | Set up a basic pyproject.toml for PEP-518 builds (#1009)                    |
+| 2021-04-15  | beafbb6     | v2.3.0-36-gbeafbb6 | remove python 3.5 from supported list (#1011)                               |
+| 2021-04-15  | 5ee9cde     | v2.3.0-35-g5ee9cde | [Resolves #978] Only install typing on Python<3.5 (#979)                    |
+| 2021-04-13  | 52730d8     | v2.3.0-32-g52730d8 | [Resolved #992] Use the same version of alpine as the circleci tests (#999) |
+| 2020-12-23  | bd3ebd4     | v2.3.0-20-gbd3ebd4 | [Resolves #921 and #956] Remove Python 2.7 support and fix build (#959)     |
+| 2020-08-13  | 20579c4     | v2.3.0-10-g20579c4 | [Resolves #921] Drop python version 2.7 support (#922)                      |
+| 2019-08-19  | b7585fd     | v2.2.1             | Bump version: 2.2.0 → 2.2.1                                                 |
+| 2019-06-27  | 9e4e2f3     | v2.1.4             | Allow empty docs commits in CI build                                        |
+| 2019-06-26  | d4db470     | v2.1.1-13-gd4db470 | [Resolve #622] Add official Python 3.7 support                              |
+| 2019-01-10  | 0370c41     | v2.0.0-27-g0370c41 | Update PyPi classifiers                                                     |
+| 2017-05-05  | 64bc5cc     | v1.1.1-42-g64bc5cc | Merge pull request #98 from cloudreach/add-python36-to-tox-testing          |
+| 2017-04-21  | 1472f02     | v1.1.1-36-g1472f02 | add python 3.6 to tox                                                       |
+<!-- vale on-->
+
+Next steps: read the message body and the patch for each commit above and pick out the relevant affected files.
