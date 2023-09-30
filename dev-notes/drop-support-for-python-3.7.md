@@ -163,12 +163,21 @@ Matching changelog entries:
 
 The `git tag` command shows that tags are missing for v0.1.1` and v2.4.0. The repo's commit history stops at 2017, so missing v0.1.1 makes sense. But missing v2.4.0 looks like a mistake.
 
-Use this command to summarize the tags in the changelog extract and any commits that refer to a Python version.
+Q: What happened to tag `v2.4.0`?
+
+Find the commits in the changelog extract and commits that refer to a Python version.
 
 ```bash
-git log --no-walk=sorted --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" \
-    $(git log --format="%H" --grep='[Pp][Yy].*[23]\.') \
-    $(git tag --format="%(objectname)" --list v3.2.0 v3.0.0 v2.6.0 v2.5.0 v2.4.0 v2.2.1 v2.1.4 v0.1.1) \
+tmp="$(mktempdir)"
+cat > "$tmp/commits.txt" \
+<(git log --format="%H" --grep='[Pp][Yy].*[23]\.') \
+<(git tag --format="%(objectname)" --list v3.2.0 v3.0.0 v2.6.0 v2.5.0 v2.4.0 v2.2.1 v2.1.4 v0.1.1)
+```
+
+Summarize the commits.
+
+```bash
+git log --no-walk=sorted --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" $(<"$tmp/commits.txt") \
 | jq -R -c 'split("\u0000") | {"commit date": .[0], "commit hash": .[1], "descriptor": .[2], "subject": .[3]}' \
 | jtbl -m
 ```
@@ -206,3 +215,60 @@ git log --no-walk=sorted --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" \
 <!-- vale on-->
 
 Next steps: read the message body and the patch for each commit above and pick out the relevant affected files.
+
+```bash
+git log --no-walk=sorted --patch $(<"$tmp/commits.txt")
+```
+
+* `language_version` in `.pre-commit-config.yaml`
+* `classifiers` in `pyproject.toml` (inferred from change to `setup.py`)
+* `envlist` in `tox.ini`
+* `_iterate_entry_points` in `sceptre/config/reader.py` (See Q on commit `a0fc6ff`.)
+* `_iterate_entry_points` in `sceptre/tempate.py`
+* `sceptre-circleci` docker image in `.circleci/config.yml`
+* `jobs.build.steps.save_cache.paths` in `.circleci/config.yml` (The current version doesn't put a Python version here.)
+
+TODO: Continue reading from commit `27f0b9fb80bd17787e7e4f5c3998a2148c6d6618`.
+
+TODO: Reformat the list above as a table with date, hash, file, key, and value columns.
+
+Q: Commit `a0fc6ff` branches on the Python version to use either `importlib` or `pkg_resources`. It says Python 3.7 needs `pkg_resources` and Python 3.8 and up can use `importlib`. But the branch uses `pkg_resources` for Python versions less than 3.10. What's the intended behavior? (See aside on `pkg_resources` deprecation.)
+
+## An aside on `pkg_resources` deprecation
+
+The `pkg_resources` module is part of the `setuptools` package. The [package changelog](https://setuptools.pypa.io/en/latest/history.html#v67-5-0) says that version v67.5.0 officially deprecates the module. Jason R. Coombs created [PR #3843](https://github.com/pypa/setuptools/pull/3843) on 2023-03-05 to emit the deprecation message. This change is so recent that not all my installations of Python show this behavior.
+
+My virtualenv for Sceptre shows the behavior. Its version of `setuptools` is v68.0.0.
+
+```console
+$ poetry run python -c 'import pkg_resources'
+<string>:1: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+
+$ poetry run pip freeze --all | grep setuptools
+setuptools==68.0.0
+```
+
+(`pip` doesn't list `setuptools` without the `--all` option.)
+
+My system Python doesn't show the behavior. The `import` command produces no output. Its version of `setuptools` is v62.3.1.
+
+```console
+$ python3.8 -c 'import pkg_resources'
+
+$ python3.8 -m pip freeze --all | grep setuptools
+setuptools==62.3.1
+```
+
+My pipx-installed version of Sceptre shows the behavior. Its version of `setuptools` is v68.2.2.
+
+```console
+$ ~/.local/pipx/venvs/sceptre/bin/python -c 'import pkg_resources'
+<string>:1: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+
+$ ~/.local/pipx/venvs/sceptre/bin/python -m pip freeze --all | grep setuptools
+setuptools==68.2.2
+```
+
+---
+
+At the end of the investigation, review the questions (Q).

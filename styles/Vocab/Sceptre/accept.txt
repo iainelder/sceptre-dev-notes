@@ -5,6 +5,7 @@ asg_scheduled_actions
 automodule
 [Cc]md
 config
+Coombs
 dev
 deadsnakes
 distutils
@@ -30,5 +31,6 @@ Sottile
 subprocess
 testfixtures
 traceback
+virtualenv
 walkthrough
 Willison
