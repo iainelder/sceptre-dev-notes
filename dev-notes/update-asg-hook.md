@@ -22,7 +22,7 @@ docs/_source/docs/hooks.rst:5
 pyproject.toml:1
 sceptre/hooks/asg_scaling_processes.py:4
 tests/test_hooks/test_asg_scaling_processes.py:22
-```q:q
+```
 
 The Poetry config name is mentioned in the CHANGELOG.
 
