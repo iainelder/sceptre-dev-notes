@@ -395,3 +395,9 @@ Given the above, the fix is one line in pyproject.toml.
 See [PR 1374](https://github.com/Sceptre/sceptre/pull/1374) for discussion.
 
 I've asked for feedback about tests and deprecation.
+
+## Respond to feedback
+
+zaro0508 says to just remove the old name (`asg_scheduled_action`) in this PR and merge it when in the next major release (5.0).
+
+Sounds fine to me. I add another commit to remove the old name.
