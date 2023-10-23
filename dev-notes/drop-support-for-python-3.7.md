@@ -235,11 +235,12 @@ A table entry with `-` in the file column mentions a Python version in the commi
 | 2022-05-26  | f2b9118     | `.circleci/config.yml`     | `jobs.build.steps.save_cache.paths` | `.pyenv/versions/3.9.4/envs/venv`                                                     |
 | 2022-02-22  | e7f03b4     | `CHANGELOG.md`             | `3.0.0`                             | `Python 3.6 support has been removed due to that version reaching end-of-life status` |
 | 2022-02-22  | 27f0b9f     | `tox.ini`                  | `envlist`                           | `envlist = py{37,38,39},flake8`                                                       |
-| 2021-10-31  | 0953d4b     |                            |                                     |                                                                                       |
-| 2021-09-15  | 400b488     |                            |                                     |                                                                                       |
-| 2021-07-29  | 8a1649a     |                            |                                     |                                                                                       |
-| 2021-06-04  | fce128a     |                            |                                     |                                                                                       |
-| 2021-05-01  | c84abac     |                            |                                     |                                                                                       |
+| 2021-10-31  | 0953d4b     | `.python-version`          | -                                   | `3.6.9`                                                                               |
+| 2021-09-15  | 400b488     | -                          | -                                   | -                                                                                     |
+| 2021-07-29  | 8a1649a     | `CHANGELOG.md`             | `2.6.0`                             | `Update docker container to use Python 3.7`                                           |
+| 2021-06-04  | fce128a     | `Dockerfile`               | `FROM`                              | `python:3.7-alpine`                                                                   |
+| 2021-05-01  | c84abac     | `CHANGELOG.md`             | `2.5.0 Added`                       | `Added support for python 3.8 & 3.9`                                                  |
+| 2021-05-01  | c84abac     | `CHANGELOG.md`             | `2.5.0 Removed`                     | `Removed support for python 2.7 & 3.5`                                                |
 | 2021-04-29  | 19d0a4f     |                            |                                     |                                                                                       |
 | 2021-04-23  | 339780d     |                            |                                     |                                                                                       |
 | 2021-04-15  | beafbb6     |                            |                                     |                                                                                       |
@@ -260,8 +261,14 @@ Notes:
 * d932f27: The current version uses Poetry. Infer `classifiers` in `pyproject.toml`
 * a0fc6ff: Looks like a bug. See Q below.
 * f2b9118: The current version doesn't put a Python version at `jobs.build.steps.save_cache.paths`
+* 0953d4b: Removed file for good
+* 400b488: Matched message `The imp.py library has been deprecated since ver 3.4`, a fluke.
 
-TODO: continue reading from 0953d4b.
+TODO: Extract message match.
+
+TODO: Match `ver X.Y`.
+
+TODO: continue reading from 19d0a4f.
 
 Q: Commit `a0fc6ff` branches on the Python version to use either `importlib` or `pkg_resources`. It says Python 3.7 needs `pkg_resources` and Python 3.8 and up can use `importlib`. But the branch uses `pkg_resources` for Python versions less than 3.10. What's the intended behavior? (See aside on `pkg_resources` deprecation.)
 
