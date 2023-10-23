@@ -21,7 +21,7 @@ ack --ignore-dir=test-reports -- '\b3\b\D+\b([0-9]|[12][0-9])\b' \
 TODO: Ask Kelly Jon Brazil to add an ack parser to jc.
 
 | path                                                       | line | text                                                                                                              |
-|------------------------------------------------------------|------|-------------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------- |
 | `integration-tests/features/dependency-resolution.feature` | 9    | `    And that stack "3/A" was created before "3/B"`                                                               |
 | `integration-tests/features/dependency-resolution.feature` | 10   | `    And that stack "3/B" was created before "3/C"`                                                               |
 | `integration-tests/features/delete-stack.feature`          | 21   | `    and stack "3/A" depends on stack "4/C"`                                                                      |
@@ -184,7 +184,7 @@ git log --no-walk=sorted --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" $(<
 
 <!-- vale off -->
 | commit date | commit hash | descriptor         | subject                                                                     |
-|-------------|-------------|--------------------|-----------------------------------------------------------------------------|
+| ----------- | ----------- | ------------------ | --------------------------------------------------------------------------- |
 | 2023-08-13  | 5d574b7     | v4.2.2-1-g5d574b7  | [Resolve #1370] Use Python 3.11 for Black (#1371)                           |
 | 2023-07-18  | 6f6773a     | v4.2.1-1-g6f6773a  | [Resolve #1358] Updating PyYaml to ^6.0 (#1359)                             |
 | 2022-09-23  | 7d6da28     | v3.2.0             | creating v3.2.0 release (#1254)                                             |
@@ -214,23 +214,54 @@ git log --no-walk=sorted --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" $(<
 | 2017-04-21  | 1472f02     | v1.1.1-36-g1472f02 | add python 3.6 to tox                                                       |
 <!-- vale on-->
 
-Next steps: read the message body and the patch for each commit above and pick out the relevant affected files.
+Read the message body and the patch for each commit above and pick out the relevant affected files.
 
 ```bash
 git log --no-walk=sorted --patch $(<"$tmp/commits.txt")
 ```
 
-* `language_version` in `.pre-commit-config.yaml`
-* `classifiers` in `pyproject.toml` (inferred from change to `setup.py`)
-* `envlist` in `tox.ini`
-* `_iterate_entry_points` in `sceptre/config/reader.py` (See Q on commit `a0fc6ff`.)
-* `_iterate_entry_points` in `sceptre/tempate.py`
-* `sceptre-circleci` docker image in `.circleci/config.yml`
-* `jobs.build.steps.save_cache.paths` in `.circleci/config.yml` (The current version doesn't put a Python version here.)
+A table entry with `-` in the file column mentions a Python version in the commit message but doesn't change a version in the code.
 
-TODO: Continue reading from commit `27f0b9fb80bd17787e7e4f5c3998a2148c6d6618`.
+| commit date | commit hash | file                       | key                                 | value                                                                                 |
+| ----------- | ----------- | -------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| 2023-08-14  | 5d574b7     | `.pre-commit-config.yaml`  | `language_version`                  | `python3.11`                                                                          |
+| 2023-07-18  | 6f6773a     | -                          | -                                   | -                                                                                     |
+| 2022-09-23  | 7d6da28     | `CHANGELOG.md`             | `3.2.0`                             | `[Resolve #1225] Added Python 3.10 support (#1227)`                                   |
+| 2022-06-17  | d932f27     | `setup.py`                 | `classifiers`                       | `Programming Language :: Python :: 3.10`                                              |
+| 2022-06-17  | d932f27     | `tox.ini`                  | `envlist`                           | `py{37,38,39,310},flake8`                                                             |
+| 2022-06-16  | a0fc6ff     | `sceptre/config/reader.py` | `_iterate_entry_points`             | `if sys.version_info < (3, 10)`                                                       |
+| 2022-06-16  | a0fc6ff     | `sceptre/template.py`      | `_iterate_entry_points`             | `if sys.version_info < (3, 10)`                                                       |
+| 2022-06-10  | f994eb7     | `.circleci/config.yml`     | `docker.image`                      | `cloudreach/sceptre-circleci:1.0.0`                                                   |
+| 2022-05-26  | f2b9118     | `.circleci/config.yml`     | `jobs.build.steps.save_cache.paths` | `.pyenv/versions/3.9.4/envs/venv`                                                     |
+| 2022-02-22  | e7f03b4     | `CHANGELOG.md`             | `3.0.0`                             | `Python 3.6 support has been removed due to that version reaching end-of-life status` |
+| 2022-02-22  | 27f0b9f     | `tox.ini`                  | `envlist`                           | `envlist = py{37,38,39},flake8`                                                       |
+| 2021-10-31  | 0953d4b     |                            |                                     |                                                                                       |
+| 2021-09-15  | 400b488     |                            |                                     |                                                                                       |
+| 2021-07-29  | 8a1649a     |                            |                                     |                                                                                       |
+| 2021-06-04  | fce128a     |                            |                                     |                                                                                       |
+| 2021-05-01  | c84abac     |                            |                                     |                                                                                       |
+| 2021-04-29  | 19d0a4f     |                            |                                     |                                                                                       |
+| 2021-04-23  | 339780d     |                            |                                     |                                                                                       |
+| 2021-04-15  | beafbb6     |                            |                                     |                                                                                       |
+| 2021-04-15  | 5ee9cde     |                            |                                     |                                                                                       |
+| 2021-04-13  | 52730d8     |                            |                                     |                                                                                       |
+| 2020-12-23  | bd3ebd4     |                            |                                     |                                                                                       |
+| 2020-08-13  | 20579c4     |                            |                                     |                                                                                       |
+| 2019-08-19  | b7585fd     |                            |                                     |                                                                                       |
+| 2019-06-27  | 9e4e2f3     |                            |                                     |                                                                                       |
+| 2019-06-26  | d4db470     |                            |                                     |                                                                                       |
+| 2019-01-10  | 0370c41     |                            |                                     |                                                                                       |
+| 2017-05-05  | 64bc5cc     |                            |                                     |                                                                                       |
+| 2017-04-21  | 1472f02     |                            |                                     |                                                                                       |
 
-TODO: Reformat the list above as a table with date, hash, file, key, and value columns.
+
+Notes:
+
+* d932f27: The current version uses Poetry. Infer `classifiers` in `pyproject.toml`
+* a0fc6ff: Looks like a bug. See Q below.
+* f2b9118: The current version doesn't put a Python version at `jobs.build.steps.save_cache.paths`
+
+TODO: continue reading from 0953d4b.
 
 Q: Commit `a0fc6ff` branches on the Python version to use either `importlib` or `pkg_resources`. It says Python 3.7 needs `pkg_resources` and Python 3.8 and up can use `importlib`. But the branch uses `pkg_resources` for Python versions less than 3.10. What's the intended behavior? (See aside on `pkg_resources` deprecation.)
 
@@ -268,6 +299,16 @@ $ ~/.local/pipx/venvs/sceptre/bin/python -c 'import pkg_resources'
 $ ~/.local/pipx/venvs/sceptre/bin/python -m pip freeze --all | grep setuptools
 setuptools==68.2.2
 ```
+
+## Feedback from Khai Do
+
+Via Slack:
+
+> FYI, we’ve dropped support for python 3.6 pretty recently and here’s the PR for that https://github.com/Sceptre/sceptre/pull/1206
+>
+> we should also remove it from https://github.com/Sceptre/sceptre-circleci  which is the docker container that we use for testing sceptre on circle-ci
+>
+> and from the included sceptre plugins as well.. https://github.com/Sceptre/sceptre/blob/master/pyproject.toml#L61-L62
 
 ---
 
