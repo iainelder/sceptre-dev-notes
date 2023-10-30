@@ -241,19 +241,30 @@ A table entry with `-` in the file column mentions a Python version in the commi
 | 2021-06-04  | fce128a     | `Dockerfile`               | `FROM`                              | `python:3.7-alpine`                                                                   |
 | 2021-05-01  | c84abac     | `CHANGELOG.md`             | `2.5.0 Added`                       | `Added support for python 3.8 & 3.9`                                                  |
 | 2021-05-01  | c84abac     | `CHANGELOG.md`             | `2.5.0 Removed`                     | `Removed support for python 2.7 & 3.5`                                                |
-| 2021-04-29  | 19d0a4f     |                            |                                     |                                                                                       |
-| 2021-04-23  | 339780d     |                            |                                     |                                                                                       |
-| 2021-04-15  | beafbb6     |                            |                                     |                                                                                       |
-| 2021-04-15  | 5ee9cde     |                            |                                     |                                                                                       |
-| 2021-04-13  | 52730d8     |                            |                                     |                                                                                       |
-| 2020-12-23  | bd3ebd4     |                            |                                     |                                                                                       |
-| 2020-08-13  | 20579c4     |                            |                                     |                                                                                       |
-| 2019-08-19  | b7585fd     |                            |                                     |                                                                                       |
-| 2019-06-27  | 9e4e2f3     |                            |                                     |                                                                                       |
-| 2019-06-26  | d4db470     |                            |                                     |                                                                                       |
-| 2019-01-10  | 0370c41     |                            |                                     |                                                                                       |
-| 2017-05-05  | 64bc5cc     |                            |                                     |                                                                                       |
-| 2017-04-21  | 1472f02     |                            |                                     |                                                                                       |
+| 2021-04-29  | 19d0a4f     | `setup.py`                 | `classifiers`                       | `Programming Language :: Python :: 3.7`                                               |
+| 2021-04-29  | 19d0a4f     | `tox.ini`                  | `envlist`                           | `py{36,37,38,39},flake8`                                                              |
+| 2021-04-23  | 339780d     | `.circleci/config.yml`     | `docker.image`                      | `cloudreach/sceptre-circleci:0.8.0`                                                   |
+| 2021-04-15  | 339780d     | `.python-version`          | -                                   | `3.6-dev`, `3.7-dev`                                                                  |
+| 2021-04-15  | 339780d     | `requirements/prod.txt`    | -                                   | `typing>=3.7,<3.8`                                                                    |
+| 2021-04-15  | beafbb6     | `setup.py`                 | `classifiers`                       | `Programming Language :: Python :: 3.5`                                               |
+| 2021-04-15  | 5ee9cde     | `setup.py`                 | `install_requirements`              | `typing>=3.7,<3.8`                                                                    |
+| 2021-04-14  | 52730d8     | `Dockerfile`               | `FROM`                              | `python:3.6.13-alpine3.13`                                                            |
+| 2020-12-23  | bd3ebd4     | `.circleci/config.yml`     | `docker.image`                      | `cloudreach/sceptre-circleci:0.6.0`                                                   |
+| 2020-08-13  | 20579c4     | `.python-version`          | -                                   | `2.7-dev`                                                                             |
+| 2020-08-13  | 20579c4     | `CONTRIBUTING.md`          | -                                   | `Run unit tests and coverage using tox for Python 3.6 and 3.7:`                       |
+| 2020-08-13  | 20579c4     | `setup.py`                 | `classifiers`                       | `Programming Language :: Python :: 2.7`                                               |
+| 2020-08-13  | 20579c4     | `tox.ini`                  | `envlist`                           | `py36,py37`                                                                           |
+| 2019-08-19  | b7585fd     | -                          | -                                   | -                                                                                     |
+| 2019-06-27  | 9e4e2f3     | -                          | -                                   | -                                                                                     |
+| 2019-06-26  | d4db470     | `circleci/Dockerfile`      | `FROM`                              | `alpine:3.7`                                                                          |
+| 2019-06-26  | d4db470     | `circleci/Dockerfile`      | -                                   | `pyenv install 2.7-dev`, `pyenv install 3.6-dev`, `pyenv install 3.7-dev`             |
+| 2019-06-26  | d4db470     | `.circleci/config.yaml`    | `docker.image`                      | `cloudreach/sceptre-circleci:0.4`                                                     |
+| 2019-06-26  | d4db470     | `.python-version`          | -                                   | `2.7-dev`, `3.6-dev`, `3.7-dev`                                                       |
+| 2019-06-26  | d4db470     | `setup.py`                 | `classifiers`                       | `Programming Language :: Python :: 3.7`                                               |
+| 2019-06-26  | d4db470     | `tox.ini`                  | `envlist`                           | `py27,py36,py37`                                                                      |
+| 2019-01-10  | 0370c41     | `setup.py`                 | `classifiers`                       | `Programming Language :: Python :: 2.6`                                               |
+| 2017-05-05  | 64bc5cc     | -                          | -                                   | -                                                                                     |
+| 2017-04-21  | 1472f02     | `tox.ini`                  | `envlist`                           | `py269, py27, py352, py361`                                                           |
 
 
 Notes:
@@ -267,8 +278,6 @@ Notes:
 TODO: Extract message match.
 
 TODO: Match `ver X.Y`.
-
-TODO: continue reading from 19d0a4f.
 
 Q: Commit `a0fc6ff` branches on the Python version to use either `importlib` or `pkg_resources`. It says Python 3.7 needs `pkg_resources` and Python 3.8 and up can use `importlib`. But the branch uses `pkg_resources` for Python versions less than 3.10. What's the intended behavior? (See aside on `pkg_resources` deprecation.)
 
@@ -316,6 +325,8 @@ Via Slack:
 > we should also remove it from https://github.com/Sceptre/sceptre-circleci  which is the docker container that we use for testing sceptre on circle-ci
 >
 > and from the included sceptre plugins as well.. https://github.com/Sceptre/sceptre/blob/master/pyproject.toml#L61-L62
+
+I inspected PR 1206 via commit 27f0b9f.
 
 ---
 
