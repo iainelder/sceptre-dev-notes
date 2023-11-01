@@ -2,6 +2,8 @@
 
 [Slack thread](https://og-aws.slack.com/archives/C01JNN8RGBB/p1694624952882979).
 
+[GitHub issue 1381](https://github.com/Sceptre/sceptre/issues/1381).
+
 Ideas:
 
 * Search for `version_info` from `sys`
@@ -275,9 +277,7 @@ Notes:
 * 0953d4b: Removed file for good
 * 400b488: Matched message `The imp.py library has been deprecated since ver 3.4`, a fluke.
 
-TODO: Extract message match.
-
-TODO: Match `ver X.Y`.
+The regular expression doesn't extract the full matched message. What I have is good enough. If I need to go over this again consider searching for phrases such as `ver X.Y`.
 
 Q: Commit `a0fc6ff` branches on the Python version to use either `importlib` or `pkg_resources`. It says Python 3.7 needs `pkg_resources` and Python 3.8 and up can use `importlib`. But the branch uses `pkg_resources` for Python versions less than 3.10. What's the intended behavior? (See aside on `pkg_resources` deprecation.)
 
@@ -328,6 +328,23 @@ Via Slack:
 
 I inspected PR 1206 via commit 27f0b9f.
 
+## Create GitHub issue
+
+Create [issue 1381](https://github.com/Sceptre/sceptre/issues/1381) to track the work across all the repos.
+
 ---
 
-At the end of the investigation, review the questions (Q).
+Remove support for Python 3.7 from the following repos:
+
+* [ ] [Main Sceptre repo](https://github.com/Sceptre/sceptre)
+* [ ] [Docker image for CircleCI builds](https://github.com/Sceptre/sceptre-circleci)
+* [ ] [`!rcmd` shell command resolver](https://github.com/Sceptre/sceptre-resolver-cmd)
+* [ ] [`!file` file content resolver](https://github.com/Sceptre/sceptre-file-resolver)
+
+Python 3.7 reached the [end of its support lifecycle on 2023-06-27](https://devguide.python.org/versions/).
+
+I track my own progress in [my dev notes for this task](https://github.com/iainelder/sceptre-dev-notes/blob/main/dev-notes/drop-support-for-python-3.7.md).
+
+## Make changes to main Sceptre repo
+
+TODO: Review tables of matches and make changes in those places.
