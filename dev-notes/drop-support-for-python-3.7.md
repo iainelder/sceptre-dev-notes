@@ -347,4 +347,30 @@ I track my own progress in [my dev notes for this task](https://github.com/iaine
 
 ## Make changes to main Sceptre repo
 
-TODO: Review tables of matches and make changes in those places.
+2023-11-12.
+
+Made changes in [draft PR 1382](https://github.com/Sceptre/sceptre/pull/1382).
+
+Shared with Khai for feedback.
+
+## Note failed CircleCI execution
+
+It looks like CircleCI is failing to run Sceptre builds. On recent PRs GitHub shows
+
+> CircleCI Pipeline—Could not find a usable config.yml, you may have revoked the CircleCI OAuth app.
+
+It [links to a CircleCI page](https://app.circleci.com/pipelines/github/Sceptre/sceptre/1977) that shows
+
+> Could not find a usable config.yml, you may have revoked the CircleCI OAuth app. Please sign out of CircleCI and log back in with your VCS before triggering a new pipeline.
+
+What do we need to do to fix this?
+
+## Next steps
+
+Q: `Dockerfile` Python 3.10. Should it be Python 3.11?
+
+Q: NullHandler in various `__init__` files. Use the built-in version?
+
+Q: Review `__author__` and `__email__` details for all modules.
+
+Q: Simplify `_iterate_entry_points` now that all target Pythons support some version of importlib.metadata?
