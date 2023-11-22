@@ -365,7 +365,41 @@ It [links to a CircleCI page](https://app.circleci.com/pipelines/github/Sceptre/
 
 What do we need to do to fix this?
 
+## Note merge of main repo changes
+
+2023-11-22.
+
+Khai Do approved my PR on 2023-11-13 and merged it to main on 2023-11-14.
+
+## Review Khai's PR for CircleCI repo
+
+2023-11-22.
+
+Khai submitted [PR 19](https://github.com/Sceptre/sceptre-circleci/pull/19/files) for the CircleCI repo.
+
+Clone the CircleCI repo.
+
+```bash
+git clone https://github.com/Sceptre/sceptre-circleci.git ~/Repos/sceptre/circleci
+```
+
+Build the Docker image using the new Docker build syntax.
+
+```bash
+docker buildx build .
+```
+
+The build completes. I'm not sure what to do with it next. I think it's only used by CircleCI.
+
+The `FROM cimg/python:3.12.0-node` line refers to the name on Docker Hub of the [CircleCI Convenience Image for Python](https://hub.docker.com/r/cimg/python).
+
+> Each tag contains a complete Python version via pyenv. pip, pipenv, and poetry are pre-installed, and any binaries and tools that are required for builds to complete successfully in a CircleCI environment.
+
+I ask some questions to Khai on his PR to understand what each Python version means.
+
 ## Next steps
+
+Sceptre/sceptre:
 
 Q: `Dockerfile` Python 3.10. Should it be Python 3.11?
 
@@ -374,3 +408,5 @@ Q: NullHandler in various `__init__` files. Use the built-in version?
 Q: Review `__author__` and `__email__` details for all modules.
 
 Q: Simplify `_iterate_entry_points` now that all target Pythons support some version of importlib.metadata?
+
+TODO: Follow Khai's advice on Slack to set up my CircleCI account
