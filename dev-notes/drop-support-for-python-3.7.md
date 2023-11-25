@@ -397,6 +397,267 @@ The `FROM cimg/python:3.12.0-node` line refers to the name on Docker Hub of the 
 
 I ask some questions to Khai on his PR to understand what each Python version means.
 
+## Learn about pyenv versions
+
+2023-11-25.
+
+I'll use the term "feature release" to describe a Python version like "3.8" and "bugfix release" to describe a Python version like "3.8.10". I can't find a plain description of that in the official documentation, but it's how I and this [Real Python author](https://realpython.com/python-bugfix-version/) think about Python versions.
+
+Khai first wanted to use these Python bugfix versions in the sceptre-circlici Dockerfile:
+
+```text
+3.8.16
+3.9.16
+3.10.10
+3.11.2
+```
+
+Because some of those were unavailable in the CircliCI environment, he rolled them back to these versions:
+
+```text
+3.8.16
+3.9.16
+3.10.9
+3.11.1
+```
+
+Khai installed pyenv 2.3.25.
+
+My pyenv version is 2.3.32.
+
+```text
+$ pyenv --version
+pyenv 2.3.32
+```
+
+This command uses the `pyenv latest --known` command to gives the latest bugfix versions for all Python feature release versions that Sceptre supports or plans to support.
+
+```bash
+echo 3.7 3.8 3.9 3.10 3.11 | xargs -n1 pyenv latest --known
+```
+
+```text
+3.7.17
+3.8.18
+3.9.18
+3.10.13
+3.11.6
+```
+
+Pyenv installs itself by cloning a Git repo. It updates itself by pulling changes from that repo. A git tag marks each pyenv version. The repo stores a list of all known Python version. Newer pyenv versions extend the Python version list. GitHub hosts the pyenv repo, so I can use the GitHub API to check what the latest Python bugfix versions would be for a given pyenv version.
+
+Read this [Stack Overflow question](https://stackoverflow.com/questions/25370881/github-api-get-contents-of-tag-instead-of-master) to learn how to list GitHub repo contents at a tagged version.
+
+Write this function to show the latest Python versions listed by a given pyenv version. It shows just the Python feature versions that Sceptre supports. It ignores development versions.
+
+```bash
+function list_latest_pythons_known_to_pyenv_version() {
+  pyenv_version="$1"
+  curl -Ss "https://api.github.com/repos/pyenv/pyenv/contents/plugins/python-build/share/python-build?ref=v$pyenv_version" \
+  | jq 'map(.name | capture("^(?<feature>3\\.(7|8|9|10|11))\\.(?<bugfix>[01234567890]+)$"))' \
+  | jq 'group_by(.feature) | map(max_by(.bugfix | tonumber))' \
+  | jq -r '.[] | "\(.feature).\(.bugfix)"' \
+  | sort -V
+}
+```
+
+Use this function to check what pyenv 2.3.32 would return (the version I installed).
+
+```bash
+list_latest_pythons_known_to_pyenv_version "2.3.32"
+```
+
+The output matches that from my installed pyenv version.
+
+```text
+3.7.17
+3.8.18
+3.9.18
+3.10.13
+3.11.6
+```
+
+Use the function to check what pyenv 2.3.25 would return (the version Khai installed).
+
+```bash
+list_latest_pythons_known_to_pyenv_version "2.3.25"
+```
+
+```text
+3.7.17
+3.8.18
+3.9.18
+3.10.13
+3.11.5
+```
+
+pyenv 2.3.25 shows an earlier bugfix version for feature version 3.11.
+
+In general an earlier pyenv version will have the same or earlier bugfix version for a given feature version.
+
+Q: Khai says for 3.10 the latest bugfix version is 3.10.10. I can't explain why my function gives 3.10.13 and he gets 3.10.10. Maybe there's something I'm missing about how pyenv works.
+
+I suspect that the CircliCI image may use an ever earlier version of pyenv.
+
+I already built the image from the master branch so I can run it to check. I built it without any tags so I need to run it using the image ID.
+
+```bash
+docker run -it --rm 04b13bde0c0b bash
+```
+
+I know it's the right image because the prompt says "`circleci`".
+
+```text
+circleci@5cf07ee38878:~/project$$
+```
+
+The image's pyenv version is 2.3.8.
+
+```console
+$ pyenv --version
+pyenv 2.3.8
+```
+
+The image base is `cimg/python:3.11.1-node`.
+
+Pull that image and check it has the same version.
+
+The pull is fast because all the layers already belong to the CircleCI image. All Docker needs to add is the metadata.
+
+```console
+$ docker pull cimg/python:3.11.1-node
+3.11.1-node: Pulling from cimg/python
+301a8b74f71f: Already exists
+3a115dde664b: Already exists
+560f8b954700: Already exists
+07a263cdc41b: Already exists
+45547161523e: Already exists
+9d5a29a12b14: Already exists
+573e5075c506: Already exists
+4f4fb700ef54: Already exists
+6345f6d63563: Already exists
+547dac75ac99: Already exists
+031ea5de6478: Already exists
+39315802cfd3: Already exists
+a5fa0027729b: Already exists
+dff807b318bc: Already exists
+Digest: sha256:fac71c651914675c788807a3024d3730d897d3c898c47fa207268082fcba41c8
+Status: Downloaded newer image for cimg/python:3.11.1-node
+docker.io/cimg/python:3.11.1-node
+```
+
+The base image's pyenv version is also 2.3.8.
+
+```console
+$ docker run --rm cimg/python:3.11.1-node pyenv --version
+pyenv 2.3.8
+```
+
+List the latest Python versions known to pyenv 2.3.8.
+
+```console
+$ docker run --rm cimg/python:3.11.1-node bash -c 'echo 3.7 3.8 3.9 3.10 3.11 | xargs -n1 pyenv latest --known'
+3.7.16
+3.8.16
+3.9.16
+3.10.9
+3.11.1
+```
+
+My function gives the same output.
+
+```bash
+list_latest_pythons_known_to_pyenv_version "2.3.8"
+```
+
+Pull the new base image that Khai wants to use.
+
+```bash
+docker pull cimg/python:3.12.0-node
+```
+
+The new base image uses pyenv 2.3.29.
+
+```console
+$ docker run --rm cimg/python:3.12.0-node pyenv --version
+pyenv 2.3.29
+```
+
+List the latest Python versions known to pyenv 2.3.29.
+
+```console
+$ docker run --rm cimg/python:3.12.0-node bash -c 'echo 3.7 3.8 3.9 3.10 3.11 | xargs -n1 pyenv latest --known'
+3.7.17
+3.8.18
+3.9.18
+3.10.13
+3.11.6
+```
+
+My function gives the same output.
+
+```bash
+list_latest_pythons_known_to_pyenv_version "2.3.29"
+```
+
+The CircleCI base images' own Dockerfiles are in the GitHub repo [CircleCI-Public/cimg-python](https://github.com/CircleCI-Public/cimg-python/). The maintainers update each Dockerfile for each new bugfix version of the Python feature version. For example, [the history of the Dockerfile for Python 3.11](https://github.com/CircleCI-Public/cimg-python/commits/main/3.11/Dockerfile) shows changes for Python versions 3.11.0, 3.11.1, 3.11.2, and all bugfix versions up to 3.11.6.
+
+## Answer Khai's question about pyenv versions
+
+2023-11-25.
+
+This time I don't think the operating system matters, but the pyenv version certainly does.
+
+My pyenv version is 2.3.32. That's the latest version. I ran `pyenv update` just before I checked this.
+
+The pyenv version in the Docker image is what matters most.
+
+Base image `cimg/python:3.11-node` has pyenv version 2.3.8.
+
+Base image `cimg/python:3.12-node` has pyenv version 2.3.29.
+
+This table shows, for each Python feature version that Sceptre supports, the latest bugfix version that each pyenv version can install.
+
+| Feature | Pyenv 2.3.8 latest | Pyenv 2.3.29 latest |
+|:--------|-------------------:|--------------------:|
+| 3.7     |                 16 |                  17 |
+| 3.8     |                 16 |                  18 |
+| 3.9     |                 16 |                  18 |
+| 3.10    |                  9 |                  13 |
+| 3.11    |                  1 |                   6 |
+
+## Propose Dockerfile changes for simpler maintenance
+
+2023-11-25.
+
+If we don't need the absolute latest bugfix version, then we can just use CircleCI's chosen pyenv version.
+
+Unless we care about the exact bugfix version number, we don't have to write them in the Dockerfile. We can use compound pyenv commands to install whatever latest version it knows about.
+
+So the Dockerfile would look like this:
+
+```Dockerfile
+RUN pyenv install $(pyenv latest --known 3.8)
+RUN pyenv install $(pyenv latest --known 3.9)
+RUN pyenv install $(pyenv latest --known 3.10)
+RUN pyenv install $(pyenv latest --known 3.11)
+RUN pyenv global system $(pyenv versions --bare)
+```
+
+I built it locally and reported the Python versions available to pyenv:
+
+```console
+$ docker run -it --rm 1fb7c2f153d2 pyenv versions
+* system (set by /home/circleci/.pyenv/version)
+* 3.8.18 (set by /home/circleci/.pyenv/version)
+* 3.9.18 (set by /home/circleci/.pyenv/version)
+* 3.10.13 (set by /home/circleci/.pyenv/version)
+* 3.11.6 (set by /home/circleci/.pyenv/version)
+* 3.12.0 (set by /home/circleci/.pyenv/version)
+```
+
+I believe writing the Dockerfile this way would allow us to use the next bugfix version automatically whenever CircleCI updates their base image. Then we would never need to manage the bugfix versions again in this file. We would change this file only when Sceptre's supported feature versions change.
+
 ## Next steps
 
 Sceptre/sceptre:

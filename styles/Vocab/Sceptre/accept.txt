@@ -3,12 +3,14 @@ args
 asg_scaling_processes
 asg_scheduled_actions
 automodule
+bugfix
 [Cc]md
 config
 Coombs
 dev
 deadsnakes
 distutils
+Dockerfile
 docstring
 entry_points
 Elst
@@ -24,6 +26,7 @@ moto
 nkmk
 OAuth
 Pintrest
+pyenv
 pytest
 Remy
 reformat
