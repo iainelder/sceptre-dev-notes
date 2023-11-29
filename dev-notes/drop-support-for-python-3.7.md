@@ -658,6 +658,64 @@ $ docker run -it --rm 1fb7c2f153d2 pyenv versions
 
 I believe writing the Dockerfile this way would allow us to use the next bugfix version automatically whenever CircleCI updates their base image. Then we would never need to manage the bugfix versions again in this file. We would change this file only when Sceptre's supported feature versions change.
 
+2023-11-28.
+
+Khai accepted the suggestion and merged PR 19.
+
+## Read sceptre-resolver-cmd repo for Python feature versions
+
+2023-11-26.
+
+Search for strings that suggest Python feature versions and tabulate the results. This is the same search I did in the main repo.
+
+```bash
+ack -- '(\b3\b\D+\b([0-9]|[12][0-9])\b|version_info|python_version|python_version_tuple)' \
+| sed -E 's/^([^:]+):([^:]+):/\1\x00\2\x00/' \
+| jq -R -c 'split("\u0000") | {"path": "`\(.[0])`", "line": .[1], "text": "`\(.[2])`"}' \
+| jtbl -m
+```
+
+Only the programming language classifiers in `setup.py` look like a real match.
+
+| path               | line | text                                               |
+|--------------------|------|----------------------------------------------------|
+| `setup.py`         | 32   | `    "pytest>=3.2",`                               |
+| `setup.py`         | 65   | `        "Programming Language :: Python :: 3.7",` |
+| `setup.py`         | 66   | `        "Programming Language :: Python :: 3.8",` |
+| `setup.py`         | 67   | `        "Programming Language :: Python :: 3.9",` |
+| `setup.py`         | 68   | `        "Programming Language :: Python :: 3.10"` |
+| `requirements.txt` | 5    | `pytest-runner>=3.0.0,<3.1.0`                      |
+| `requirements.txt` | 6    | `pytest>=3.2.0,<3.3.0`                             |
+| `requirements.txt` | 10   | `tox>=2.9.1,<3.0.0`                                |
+
+The repo has just 23 commits, so read it all to find any references to Python feature versions. "Programming Language" is the only one.
+
+Use this command to see where "Programming Language" occurrences change.
+
+```bash
+git log \
+    --no-walk=sorted \
+    --format="%cs%x00%h%x00%(describe:tags=true)%x00%s" \
+    $(git log --format="%H" -G "Programming Language") \
+| jq -R -c 'split("\u0000") | {"commit date": .[0], "commit hash": .[1], "descriptor": .[2], "subject": .[3]}' \
+| jtbl -m
+```
+
+| commit date | commit hash | descriptor        | subject                                |
+|-------------|-------------|-------------------|----------------------------------------|
+| 2023-02-13  | ace0fd4     | v1.2.1-1-gace0fd4 | Preparing for Sceptre v4 release (#12) |
+| 2021-07-05  | 8e78bdd     |                   | [Resolves #3] Move to Sceptre Org      |
+| 2020-08-21  | 9d32ad4     |                   | Initial commit                         |
+
+
+## Review update to the main Sceptre CI configuration
+
+2023-11-28.
+
+Khai asked me to review [PR 1393](https://github.com/Sceptre/sceptre/pull/1393).
+
+I left some questions as feedback to learn more about this part of the process.
+
 ## Next steps
 
 Sceptre/sceptre:
