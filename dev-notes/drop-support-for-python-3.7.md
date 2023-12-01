@@ -716,6 +716,141 @@ Khai asked me to review [PR 1393](https://github.com/Sceptre/sceptre/pull/1393).
 
 I left some questions as feedback to learn more about this part of the process.
 
+2023-11-30.
+
+Khai closed PR 1393 to replace it with another [PR 1394](https://github.com/Sceptre/sceptre/pull/1394). I'm getting confused with so many!
+
+Khai has discovered that the project no longer needs a custom container to control multiple Python versions. The CirclCI base image already includes Poetry and somehow it can already switch between different Python feature versions. That means the work on sceptre-circleci PR 19 and that whole repo is obsolete.
+
+I suggest we use the `3.12` tagged image instead of the `3.12.0` tagged image to get Python bugfix updates automatically.
+
+Khai suggested to change the black language version from 3.11 to 3.11 because the [CircleCI build failed](https://app.circleci.com/pipelines/github/Sceptre/sceptre/2010/workflows/e64f2159-65b5-4b30-9a1d-0ed329fefaf3/jobs/10978).
+
+The error message:
+
+```text
+An unexpected error has occurred: CalledProcessError: command: ('/home/circleci/.cache/pypoetry/virtualenvs/sceptre-3aSsmiER-py3.10/bin/python', '-mvirtualenv', '/home/circleci/.cache/pre-commit/repou3wgujmq/py_env-python3.11', '-p', 'python3.11')
+return code: 1
+stdout:
+    RuntimeError: failed to find interpreter for Builtin discover of python_spec='python3.11'
+
+stderr: (none)
+Check the log at /home/circleci/.cache/pre-commit/pre-commit.log
+```
+
+The first output of pre-commit shows that, perhaps arbitrarily, pre-commit chose python3.10 because the project doesn't support the default python3.12.0.
+
+```text
+The currently activated Python version 3.12.0 is not supported by the project (>=3.8,<3.12).
+Trying to find and use a compatible version.
+Using python3.10 (3.10.6)
+```
+
+Rather than change the language version of black, we should probably pull in some of changes from #1393 that this PR replaces.
+
+You can reproduce the black error locally like this.
+
+(I copied the command from `.circleci/config.yaml`.
+
+```bash
+docker run -it cimg/python:3.12.0 bash -c '
+git clone https://github.com/Sceptre/sceptre .
+git fetch origin pull/1394/head:pr
+git switch pr
+sed -i "46s/language_version: python3.10/language_version: python3.11/" .pre-commit-config.yaml
+poetry install --all-extras -v
+poetry run pre-commit run black --all-files --show-diff-on-failure
+'
+```
+
+[See GitHub documentation for how to check out pull requests locally](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally).
+
+## Debug missing Python interpreters
+
+2023-12-01.
+
+Khai pulled in changes from PR 1393 and PR 1390 (from Homebrew maintainer Branch Vincent) to make Sceptre work with Python 3.12.
+
+It looks like the stock CircleCI container doesn't make available all the Python feature versions we need.
+
+Maybe we do still need a custom image after all.
+
+Use this command to check the reported version of each target Python feature version.
+
+```bash
+docker run -it cimg/python:3.12 bash -c 'for py in python3.{8,9,10,11,12}; do "$py" --version; done'
+```
+
+Python 3.10 and 3.12 report back. Python 3.8, 3.9, and 3.11 are missing.
+
+```text
+bash: line 1: python3.8: command not found
+bash: line 1: python3.9: command not found
+Python 3.10.6
+bash: line 1: python3.11: command not found
+Python 3.12.0
+```
+
+I discovered it running the unit tests as the CI pipeline would.
+
+```bash
+docker run -it cimg/python:3.12 bash -c '
+git clone https://github.com/Sceptre/sceptre .
+git fetch origin pull/1394/head:pr
+git switch pr
+poetry install --all-extras -v
+poetry run tox
+echo "Tox exit code: $?"
+'
+```
+
+Tox passes `py310`. It skips `py38`, `py39`, and `py311` because it didn't find the interpreter.
+
+```text
+SKIPPED:  py38: InterpreterNotFound: python3.8
+SKIPPED:  py39: InterpreterNotFound: python3.9
+  py310: commands succeeded
+SKIPPED:  py311: InterpreterNotFound: python3.11
+  congratulations :)
+Tox exit code: 0
+```
+
+The worst part is that Tox exits with code 0.
+
+The 0 exit code means [CircleCI run 11003 for the build-and-unit-test workflow reported success](https://app.circleci.com/pipelines/github/Sceptre/sceptre/2017/workflows/1e9218f3-2354-4528-b1fb-40d010b09479/jobs/11003).
+
+I would prefer that Tox fails when it can't find the target interpreter.
+
+I can make that happen by deleting the `skip_missing_interpreter` line from its config.
+
+https://github.com/Sceptre/sceptre/blob/1ad3f303f0bb1aa946c36ee2674553dc2e502031/tox.ini#L4
+
+```bash
+docker run -it cimg/python:3.12 bash -c '
+git clone https://github.com/Sceptre/sceptre .
+git fetch origin pull/1394/head:pr
+git switch pr
+sed -i "/skip_missing_interpreters/d" tox.ini
+poetry install --all-extras -v
+poetry run tox
+echo "Tox exit code: $?"
+'
+```
+
+Tox still runs all the tests it can, but now it fails because of missing interpreters.
+
+```text
+ERROR:  py38: InterpreterNotFound: python3.8
+ERROR:  py39: InterpreterNotFound: python3.9
+  py310: commands succeeded
+ERROR:  py311: InterpreterNotFound: python3.11
+Tox exit code: 1
+```
+
+From the [tox docs](https://tox.wiki/en/latest/config.html#skip_missing_interpreters):
+
+> Setting this to `true` will force tox to return success even if some of the specified environments were missing. This is useful for some CI systems or when running on a developer box, where you might only have a subset of all your supported interpreters installed but don’t want to mark the build as failed because of it.
+
 ## Next steps
 
 Sceptre/sceptre:
