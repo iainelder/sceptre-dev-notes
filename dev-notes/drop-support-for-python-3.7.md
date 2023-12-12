@@ -851,7 +851,102 @@ From the [tox docs](https://tox.wiki/en/latest/config.html#skip_missing_interpre
 
 > Setting this to `true` will force tox to return success even if some of the specified environments were missing. This is useful for some CI systems or when running on a developer box, where you might only have a subset of all your supported interpreters installed but don’t want to mark the build as failed because of it.
 
+## Reopen PR 1393
+
+2023-12-02
+
+Khai closed PR 1394 and reopened PR 1393. He requested a review again.
+
+This one doesn't include all the changes for Python 3.12. That wasn't the main point anyway. The point is to drop Python 3.7.
+
+It uses the sceptre-circleci image that installs all the Python versions.
+
+Here is the log of the image layers for version 2.1.0.
+
+https://hub.docker.com/layers/sceptreorg/sceptre-circleci/2.1.0/images/sha256-1fbd22047c910e3709b77bf80aafd005ec9a84ce8ee69b7195f8eea83633bdf3?context=explore
+
+```console
+$ docker run -it --rm sceptreorg/sceptre-circleci:2.1.0 bash -c 'for py in python3.{7,8,9,10,11,12}; do "$py" --version; done'
+bash: line 1: python3.7: command not found
+Python 3.8.18
+Python 3.9.18
+Python 3.10.6
+Python 3.11.6
+Python 3.12.0
+```
+
+## Show how Poetry generates classifiers
+
+2023-12-08.
+
+[A response to Khai's question about the Python version constraint](https://github.com/Sceptre/sceptre-file-resolver/pull/12#discussion_r1420896311).
+
+> @branchvincent mentioned that the supported python version classifier is automatically added based on the python requirement? don't we need the upper bound to restrict the documented support?
+
+[The Poetry documentation](https://python-poetry.org/docs/pyproject#classifiers) doesn't give much detail on how this works.
+
+Thanks @branchvincent for the demo. I see the same behavior here.
+
+List available Python feature versions.
+
+```bash
+compgen -c | grep -P '^python3\.\d+$' | sort -V -u
+```
+
+I still have Python 3.7 installed, and I haven't installed Python 3.12 yet.
+
+```text
+python3.7
+python3.8
+python3.9
+python3.10
+python3.11
+```
+
+Build a Python package from Poetry's new project template.
+
+```bash
+cd "$(mktemp --dir)"
+poetry new . --quiet
+poetry build --quiet
+```
+
+Check the Python constraint.
+
+```bash
+cat pyproject.toml | grep -P "dependencies|python = "
+```
+
+Python 3.8 is the minimum Python version. All later Python 3 versions are allowed.
+
+```toml
+[tool.poetry.dependencies]
+python = "^3.8"
+```
+
+Check the classifiers.
+
+```bash
+unzip -q -c dist/*.whl | grep "Programming Language"
+```
+
+Because the minimum Python version is 3.8 Poetry excludes the classifier for Python 3.7.
+
+Because the environment doesn't have Python 3.12 Poetry excludes the classifier for Python 3.12.
+
+```text
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+```
+
+
+
 ## Next steps
+
+TODO: Collect and link all PRs for this at the top. Branch Vincent stepped in to create a lot of new PRs!
 
 Sceptre/sceptre:
 
