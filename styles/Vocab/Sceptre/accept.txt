@@ -19,6 +19,7 @@ gnuplot
 initializer
 IPython
 jc
+keypair
 Khai
 kwargs
 Makefile
@@ -31,6 +32,7 @@ pytest
 Remy
 reformat
 repo
+signup
 Sottile
 subprocess
 testfixtures
