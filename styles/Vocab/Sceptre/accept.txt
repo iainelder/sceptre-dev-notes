@@ -19,6 +19,7 @@ gnuplot
 initializer
 IPython
 jc
+JRD
 keypair
 Khai
 kwargs

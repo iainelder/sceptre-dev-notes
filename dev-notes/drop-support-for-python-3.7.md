@@ -942,11 +942,219 @@ Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 ```
 
+## Collect and link all PRs
 
+2023-12-12.
+
+I updated the first comment in main PR to link to all the PRs I know of that address this work.
+
+## Debug failed docs build
+
+2023-12-16.
+
+Branch Vincent submitted [PR 1395](https://github.com/Sceptre/sceptre/pull/1395) to use CircleCI's own Python image and other native features to simplify CI configuration.
+
+[Khai noticed](https://github.com/Sceptre/sceptre/pull/1395/files#r1421777615) that the [`deploy-docs-branch` job failed](https://app.circleci.com/pipelines/github/Sceptre/sceptre/2034/workflows/885ac577-7398-406f-a33d-3542580761cd/jobs/11094).
+
+```text
+Creating virtualenv *******-3aSsmiER-py3.8 in /home/circleci/.cache/pypoetry/virtualenvs
+# github.com:22 SSH-2.0-babeld-756a9a22
+Cloning into '*******.github.io'...
+remote: Enumerating objects: 9231, done.
+remote: Counting objects: 100% (1110/1110), done.
+remote: Compressing objects: 100% (181/181), done.
+remote: Total 9231 (delta 930), reused 1098 (delta 924), pack-reused 8121
+Receiving objects: 100% (9231/9231), 11.52 MiB | 47.36 MiB/s, done.
+Resolving deltas: 100% (7459/7459), done.
+Building docs in /home/circleci/docs/*******.github.io/dev
+./.circleci/github-pages.sh: line 63: sphinx-apidoc: command not found
+
+Exited with code exit status 127
+```
+
+The `sphinx-apidoc` command is part of the sphinx package or one of its companions. Some of those packages are optional extras.
+
+Poetry's install command's `--all-extras` option controls whether to install optional extras.
+
+The PR rewrites the `--all-extras` part. Is the setting now ignored? (See below for more analysis on the rewrite.)
+
+The old CircleCI config uses a `run` step to execute the same command I would in my terminal.
+
+```yaml
+jobs:
+  build:
+    docker:
+      - image: sceptreorg/sceptre-circleci:2.1.0
+    steps:
+      - ...
+      - run:
+          name: 'Installing Dependencies'
+          command: poetry install --all-extras -v
+```
+
+The new CircleCI config replaces that with:
+
+```yaml
+jobs:
+  build:
+    executor: python/default
+      - python/install-packages:
+          pkg-manager: poetry
+          args: --all-extras
+```
+
+Which package does `sphinx-apidoc` belong to?
+
+How do you find the source package for an executable?
+
+Read [JRD's answer](https://stackoverflow.com/questions/33483818/how-to-find-which-pip-package-owns-a-file/33484229#33484229) on Stack Overflow.
+
+There's no simple command for that, but you can build a solution using `pip show`.
+
+I'll use this once in an environment with all the optional extras and once with no extras.
+
+```bash
+poetry run bash <<"EOF"
+find_package_for_file() {
+  file="$1"
+  dependencies=$(pip list | tail +3 | cut -d' ' -f1)
+
+  for package in $dependencies; do
+      package_info=$(pip show -f "$package")
+      if [[ $package_info =~ $file ]]; then
+        printf "%s\n" "$package_info"
+      fi
+  done
+}
+
+find_package_for_file "sphinx-apidoc"
+EOF
+```
+
+Rebuild the virtualenv and use the `--all-extras` option.
+
+```bash
+bash <<"EOF"
+poetry env remove 3.8
+poetry env use 3.8
+poetry install --verbose --all-extras
+EOF
+```
+
+The package search prints the package info for `sphinx`:
+
+```text
+Name: Sphinx
+Version: 5.1.1
+Summary: Python documentation generator
+Home-page: https://www.sphinx-doc.org/
+Author: Georg Brandl
+Author-email: georg@python.org
+License: BSD
+Location: /home/isme/.cache/pypoetry/virtualenvs/sceptre-ltLaG0f3-py3.8/lib/python3.8/site-packages
+Requires: alabaster, babel, docutils, imagesize, importlib-metadata, Jinja2, packaging, Pygments, requests, snowballstemmer, sphinxcontrib-applehelp, sphinxcontrib-devhelp, sphinxcontrib-htmlhelp, sphinxcontrib-jsmath, sphinxcontrib-qthelp, sphinxcontrib-serializinghtml
+Required-by: sphinx-autodoc-typehints, sphinx-click, sphinx-rtd-theme
+Files:
+  ../../../bin/sphinx-apidoc
+...
+```
+
+The virtualenv has the `sphinx-apidoc` command.
+
+```console
+$ poetry run sphinx-apidoc
+usage: sphinx-apidoc [OPTIONS] -o <OUTPUT_PATH> <MODULE_PATH> [EXCLUDE_PATTERN, ...]
+sphinx-apidoc: error: the following arguments are required: module_path, exclude_pattern, -o/--output-dir
+```
+
+Rebuild the virtualenv and don't use the `--all-extras` option.
+
+```bash
+bash <<"EOF"
+poetry env remove 3.8
+poetry env use 3.8
+poetry install --verbose
+EOF
+```
+
+The `--verbose` option shows skipped packages.
+
+```text
+  • Installing sphinx (5.1.1): Skipped for the following reason: Not required
+```
+
+The package search prints no package info.
+
+The virtualenv doesn't have the `sphinx-apidoc` command.
+
+```console
+$ poetry run sphinx-apidoc
+Command not found: sphinx-apidoc
+```
+
+## Understand the all-extras rewrite
+
+2023-12-16.
+
+PR 1395 rewrites the step that installs the Poetry project with the `--all-extras` option.
+
+Now the `deploy-docs-branch` job fails because the `sphinx-apidocs` command is missing.
+
+The old CircleCI config uses a `run` step to execute the same command I would in my terminal.
+
+```yaml
+jobs:
+  build:
+    docker:
+      - image: sceptreorg/sceptre-circleci:2.1.0
+    steps:
+      - ...
+      - run:
+          name: 'Installing Dependencies'
+          command: poetry install --all-extras -v
+```
+
+The new CircleCI config replaces that with CircleCI orb syntax:
+
+```yaml
+orbs:
+  python: circleci/python@2.1.1
+
+jobs:
+  build:
+    executor: python/default
+      - python/install-packages:
+          pkg-manager: poetry
+          args: --all-extras
+```
+
+Read the [Jobs and Steps documentation](https://circleci.com/docs/jobs-steps/).
+
+On orbs:
+
+> Orbs are packages or reusable configuration that you can use in your projects. Orbs usually contain commands that you can use in your jobs, as well as whole jobs that you can schedule in your workflows.
+
+On executors:
+
+> Jobs can be run in Docker containers, using the Docker executor, or in virtual machines using the `machine` executor, with Linux, macOS, or Windows images.
+
+> When using the Docker executor, images listed under the `docker` key specify the containers you want to start for your job.
+
+Read the [Execution environments overview](https://circleci.com/docs/executor-intro/).
+
+CircleCI has a special key for the Docker executor (`docker`) and the machine executor (`machine`). Other executors, such as those provided by orbs, use the `executor` key.
+
+Read the [circleci/python orb](https://circleci.com/developer/orbs/orb/circleci/python).
+
+The `defualt` executor appears to be an alias for the docker image `cimg/python`. The version tag is parametrized and defaults to `3.8`.
+
+The `install-packages` command sets up a Python environment and installs the packages.
+
+> With poetry as pkg-manager, the command will assume `--no-ansi`.
+
+TODO: analyze `install-packages` arguments.
 
 ## Next steps
-
-TODO: Collect and link all PRs for this at the top. Branch Vincent stepped in to create a lot of new PRs!
 
 Sceptre/sceptre:
 
@@ -957,5 +1165,3 @@ Q: NullHandler in various `__init__` files. Use the built-in version?
 Q: Review `__author__` and `__email__` details for all modules.
 
 Q: Simplify `_iterate_entry_points` now that all target Pythons support some version of importlib.metadata?
-
-TODO: Follow Khai's advice on Slack to set up my CircleCI account
