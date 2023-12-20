@@ -1146,13 +1146,144 @@ CircleCI has a special key for the Docker executor (`docker`) and the machine ex
 
 Read the [circleci/python orb](https://circleci.com/developer/orbs/orb/circleci/python).
 
-The `defualt` executor appears to be an alias for the docker image `cimg/python`. The version tag is parametrized and defaults to `3.8`.
+The `default` executor appears to be an alias for the docker image `cimg/python`. The version tag is parametrized and defaults to `3.8`.
 
 The `install-packages` command sets up a Python environment and installs the packages.
 
 > With poetry as pkg-manager, the command will assume `--no-ansi`.
 
-TODO: analyze `install-packages` arguments.
+If the install config looks like this:
+
+```yaml
+      - python/install-packages:
+          pkg-manager: poetry
+          args: --all-extras
+```
+
+The the command it should run is `poetry install --no-ansi --all-extras`.
+
+The step that installs the dependencies is in a different job from the step that build the docs and fails.
+
+* Project: Sceptre
+* Branch: ci-matrix
+* Workflow: build-test-and-deploy
+* [Job: build (11085)](https://app.circleci.com/pipelines/github/Sceptre/sceptre/2034/workflows/885ac577-7398-406f-a33d-3542580761cd/jobs/11085)
+* Step: Install dependencies with poetry using project pyproject.toml
+* Command: `poetry install --no-ansi --all-extras`
+
+Step output:
+
+```text
+Creating virtualenv sceptre-3aSsmiER-py3.8 in /home/circleci/.cache/pypoetry/virtualenvs
+Installing dependencies from lock file
+
+Package operations: 76 installs, 1 update, 0 removals
+
+  • Installing six (1.16.0)
+  • Installing certifi (2023.11.17)
+  • Installing charset-normalizer (3.3.2)
+  • Installing idna (3.6)
+  • Installing jmespath (1.0.1)
+  • Installing markupsafe (2.1.3)
+  • Installing pyparsing (3.1.1)
+  • Installing python-dateutil (2.8.2)
+  • Installing pytz (2023.3.post1)
+  • Installing urllib3 (1.26.18)
+  • Installing zipp (3.17.0)
+  • Installing alabaster (0.7.13)
+  • Installing babel (2.13.1)
+  • Installing botocore (1.33.6)
+  • Installing distlib (0.3.7)
+  • Installing docutils (0.16)
+  • Installing exceptiongroup (1.2.0)
+  • Installing click (8.1.7)
+  • Installing importlib-metadata (6.9.0)
+  • Installing jinja2 (3.1.2)
+  • Installing iniconfig (2.0.0)
+  • Installing pluggy (1.3.0)
+  • Installing pyyaml (6.0.1)
+  • Installing requests (2.31.0)
+  • Installing filelock (3.13.1)
+  • Installing pygments (2.17.2)
+  • Installing parse (1.20.0)
+  • Installing imagesize (1.4.1)
+  • Updating setuptools (68.0.0 -> 69.0.2)
+  • Installing packaging (21.3)
+  • Installing sphinxcontrib-applehelp (1.0.4)
+  • Installing sphinxcontrib-htmlhelp (2.0.1)
+  • Installing sphinxcontrib-serializinghtml (1.1.5)
+  • Installing tomli (2.0.1)
+  • Installing sphinxcontrib-qthelp (1.0.3)
+  • Installing platformdirs (4.0.0)
+  • Installing webencodings (0.5.1)
+  • Installing sphinxcontrib-jsmath (1.0.1)
+  • Installing snowballstemmer (2.2.0)
+  • Installing sphinxcontrib-devhelp (1.0.2)
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+  • Installing attrs (23.1.0)
+  • Installing bleach (6.1.0)
+  • Installing cfgv (3.4.0)
+  • Installing cfn-flip (1.3.0)
+  • Installing coverage (7.3.2)
+  • Installing identify (2.5.32)
+  • Installing nodeenv (1.8.0)
+  • Installing ordered-set (4.1.0)
+  • Installing parse-type (0.6.2)
+  • Installing py (1.11.0)
+  • Installing s3transfer (0.8.2)
+  • Installing pytest (7.4.3)
+  • Installing pyrsistent (0.20.0)
+  • Installing termcolor (2.4.0)
+  • Installing sphinx (5.1.1)
+  • Installing virtualenv (20.25.0)
+  • Installing toml (0.10.2)
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+  • Installing behave (1.2.6)
+  • Installing boto3 (1.33.6)
+  • Installing colorama (0.4.3)
+  • Installing deepdiff (5.8.1)
+  • Installing freezegun (0.3.15)
+  • Installing jsonschema (3.2.0)
+  • Installing pre-commit (2.21.0)
+  • Installing readme-renderer (24.0)
+  • Installing requests-mock (1.11.0)
+  • Installing sceptre-file-resolver (1.0.6)
+  • Installing sphinx-click (3.1.0)
+  • Installing sphinx-rtd-theme (0.5.2)
+  • Installing deprecation (2.1.0)
+  • Installing sphinx-autodoc-typehints (1.19.2)
+  • Installing troposphere (4.5.2)
+  • Installing pytest-cov (2.12.1)
+  • Installing tox (3.28.0)
+  • Installing pytest-sugar (0.9.7)
+  • Installing networkx (2.6.3)
+  • Installing sceptre-cmd-resolver (2.0.0)
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+Connection pool is full, discarding connection: pypi.org. Connection pool size: 10
+
+Installing the current project: sceptre (4.3.0)
+```
+
+The step does appear to install sphinx, so my guess about it ignoring the `--all-extras` option is wrong.
 
 ## Next steps
 
